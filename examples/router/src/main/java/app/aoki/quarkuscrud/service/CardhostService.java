@@ -1,8 +1,12 @@
 package app.aoki.quarkuscrud.service;
 
 import app.aoki.quarkuscrud.model.CardhostInfo;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.websockets.next.WebSocketConnection;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.util.Map;
@@ -18,11 +22,32 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CardhostService {
     private static final Logger LOG = Logger.getLogger(CardhostService.class);
     
+    @Inject
+    MeterRegistry meterRegistry;
+    
     // Cardhost connections: UUID -> Connection
     private final Map<String, WebSocketConnection> connections = new ConcurrentHashMap<>();
     
     // Cardhost metadata: UUID -> CardhostInfo
     private final Map<String, CardhostInfo> cardhostInfo = new ConcurrentHashMap<>();
+    
+    public CardhostService() {
+        // Default constructor for CDI
+    }
+    
+    /**
+     * Initialize metrics gauges after injection.
+     */
+    @jakarta.annotation.PostConstruct
+    void initializeMetrics() {
+        Gauge.builder("router.cardhosts.connected", connections, Map::size)
+            .description("Number of currently connected cardhosts")
+            .register(meterRegistry);
+            
+        Gauge.builder("router.cardhosts.total", cardhostInfo, Map::size)
+            .description("Total number of known cardhosts")
+            .register(meterRegistry);
+    }
     
     /**
      * Register a new cardhost connection.
@@ -39,6 +64,11 @@ public class CardhostService {
         CardhostInfo info = cardhostInfo.computeIfAbsent(uuid, k -> new CardhostInfo(uuid, publicKey));
         info.setStatus("connected");
         info.updateHeartbeat();
+        
+        Counter.builder("router.cardhosts.registered")
+            .description("Total number of cardhost registrations")
+            .register(meterRegistry)
+            .increment();
         
         LOG.infof("Cardhost registered: %s", uuid);
         return info;
@@ -57,6 +87,11 @@ public class CardhostService {
         if (info != null) {
             info.setStatus("disconnected");
         }
+        
+        Counter.builder("router.cardhosts.disconnected")
+            .description("Total number of cardhost disconnections")
+            .register(meterRegistry)
+            .increment();
         
         LOG.infof("Cardhost unregistered: %s", uuid);
     }

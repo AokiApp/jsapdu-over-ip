@@ -2,6 +2,9 @@ package app.aoki.quarkuscrud.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import app.aoki.quarkuscrud.websocket.RpcMessage;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import io.quarkus.websockets.next.WebSocketConnection;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -25,6 +28,9 @@ public class RoutingService {
     @Inject
     CardhostService cardhostService;
     
+    @Inject
+    MeterRegistry meterRegistry;
+    
     // Controller connections: Connection -> target cardhost UUID
     private final Map<WebSocketConnection, String> controllers = new ConcurrentHashMap<>();
     
@@ -36,6 +42,12 @@ public class RoutingService {
      */
     public void registerController(WebSocketConnection connection, String targetCardhostUuid) {
         controllers.put(connection, targetCardhostUuid);
+        
+        Counter.builder("router.controllers.registered")
+            .description("Total number of controller registrations")
+            .register(meterRegistry)
+            .increment();
+            
         LOG.infof("Controller registered targeting cardhost: %s", targetCardhostUuid);
     }
     
@@ -56,27 +68,51 @@ public class RoutingService {
      * @param message RPC message to route
      */
     public void routeToCardhost(WebSocketConnection controllerConnection, String message) {
-        String cardhostUuid = controllers.get(controllerConnection);
-        if (cardhostUuid == null) {
-            LOG.warnf("Controller connection not registered: %s", controllerConnection.id());
-            return;
-        }
+        Timer.Sample sample = Timer.start(meterRegistry);
         
-        WebSocketConnection cardhostConnection = cardhostService.getConnection(cardhostUuid);
-        if (cardhostConnection == null) {
-            LOG.warnf("Target cardhost not connected: %s", cardhostUuid);
-            sendError(controllerConnection, "Cardhost " + cardhostUuid + " not connected");
-            return;
+        try {
+            String cardhostUuid = controllers.get(controllerConnection);
+            if (cardhostUuid == null) {
+                LOG.warnf("Controller connection not registered: %s", controllerConnection.id());
+                Counter.builder("router.messages.failed")
+                    .tag("reason", "controller_not_registered")
+                    .register(meterRegistry)
+                    .increment();
+                return;
+            }
+            
+            WebSocketConnection cardhostConnection = cardhostService.getConnection(cardhostUuid);
+            if (cardhostConnection == null) {
+                LOG.warnf("Target cardhost not connected: %s", cardhostUuid);
+                sendError(controllerConnection, "Cardhost " + cardhostUuid + " not connected");
+                Counter.builder("router.messages.failed")
+                    .tag("reason", "cardhost_not_connected")
+                    .register(meterRegistry)
+                    .increment();
+                return;
+            }
+            
+            if (!cardhostConnection.isOpen()) {
+                LOG.warnf("Target cardhost connection closed: %s", cardhostUuid);
+                cardhostService.unregisterCardhost(cardhostUuid);
+                Counter.builder("router.messages.failed")
+                    .tag("reason", "cardhost_connection_closed")
+                    .register(meterRegistry)
+                    .increment();
+                return;
+            }
+            
+            cardhostConnection.sendTextAndAwait(message);
+            Counter.builder("router.messages.routed")
+                .tag("direction", "to_cardhost")
+                .register(meterRegistry)
+                .increment();
+            LOG.debugf("Routed message from controller to cardhost %s", cardhostUuid);
+        } finally {
+            sample.stop(Timer.builder("router.messages.route.time")
+                .description("Time to route message from controller to cardhost")
+                .register(meterRegistry));
         }
-        
-        if (!cardhostConnection.isOpen()) {
-            LOG.warnf("Target cardhost connection closed: %s", cardhostUuid);
-            cardhostService.unregisterCardhost(cardhostUuid);
-            return;
-        }
-        
-        cardhostConnection.sendTextAndAwait(message);
-        LOG.debugf("Routed message from controller to cardhost %s", cardhostUuid);
     }
     
     /**
@@ -86,20 +122,32 @@ public class RoutingService {
      * @param message RPC message to route
      */
     public void routeToControllers(String cardhostUuid, String message) {
-        // Find all controllers targeting this cardhost
-        controllers.entrySet().removeIf(entry -> {
-            if (cardhostUuid.equals(entry.getValue())) {
-                WebSocketConnection controllerConnection = entry.getKey();
-                if (controllerConnection.isOpen()) {
-                    controllerConnection.sendTextAndAwait(message);
-                    LOG.debugf("Routed message from cardhost %s to controller", cardhostUuid);
-                    return false; // Keep in map
-                } else {
-                    return true; // Remove from map
+        Timer.Sample sample = Timer.start(meterRegistry);
+        
+        try {
+            // Find all controllers targeting this cardhost
+            controllers.entrySet().removeIf(entry -> {
+                if (cardhostUuid.equals(entry.getValue())) {
+                    WebSocketConnection controllerConnection = entry.getKey();
+                    if (controllerConnection.isOpen()) {
+                        controllerConnection.sendTextAndAwait(message);
+                        Counter.builder("router.messages.routed")
+                            .tag("direction", "to_controller")
+                            .register(meterRegistry)
+                            .increment();
+                        LOG.debugf("Routed message from cardhost %s to controller", cardhostUuid);
+                        return false; // Keep in map
+                    } else {
+                        return true; // Remove from map
+                    }
                 }
-            }
-            return false; // Keep in map
-        });
+                return false; // Keep in map
+            });
+        } finally {
+            sample.stop(Timer.builder("router.messages.route.time")
+                .description("Time to route message from cardhost to controller(s)")
+                .register(meterRegistry));
+        }
     }
     
     /**
