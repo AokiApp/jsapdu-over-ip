@@ -7,6 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "test": "node dist/integration-test.js",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist"
   },
@@ -18,7 +19,8 @@
   "author": "AokiApp",
   "license": "ANAL-Tight",
   "dependencies": {
-    "@aokiapp/jsapdu-interface": "file:/tmp/jsapdu-interface.tgz"
+    "@aokiapp/jsapdu-interface": "file:/tmp/jsapdu-interface.tgz",
+    "@aokiapp/jsapdu-over-ip": "file:../.."
   },
   "devDependencies": {
     "rimraf": "^5.0.10",

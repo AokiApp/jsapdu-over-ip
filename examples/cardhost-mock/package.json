@@ -1,0 +1,33 @@
+{
+  "name": "@aokiapp/jsapdu-over-ip-examples-cardhost-mock",
+  "version": "0.1.0",
+  "description": "Mock cardhost for testing (uses mock platform instead of PC/SC)",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "jsapdu",
+    "cardhost",
+    "mock",
+    "testing"
+  ],
+  "author": "AokiApp",
+  "license": "ANAL-Tight",
+  "dependencies": {
+    "@aokiapp/jsapdu-over-ip": "file:../..",
+    "@aokiapp/jsapdu-over-ip-examples-shared": "file:../shared",
+    "@aokiapp/jsapdu-over-ip-examples-test-utils": "file:../test-utils",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@aokiapp/jsapdu-interface": "file:/tmp/jsapdu-interface.tgz",
+    "@types/node": "^24.10.1",
+    "@types/ws": "^8.5.13",
+    "rimraf": "^5.0.10",
+    "typescript": "^5.9.3"
+  }
+}

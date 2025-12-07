@@ -34,11 +34,13 @@ export class MockSmartCardPlatform extends SmartCardPlatform {
       this.assertNotInitialized();
     }
     
+    // Set initialized first
+    this.initialized = true;
+    
     // Create a mock device
     const device = new MockSmartCardDevice(this, "mock-reader-0");
     this.devices.set(device.getDeviceInfo().id, device);
     
-    this.initialized = true;
     console.log("✓ Mock platform initialized with 1 device");
   }
 
