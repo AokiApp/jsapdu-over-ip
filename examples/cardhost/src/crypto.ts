@@ -7,11 +7,11 @@
 
 import { webcrypto } from 'crypto';
 
-const crypto = webcrypto as unknown as Crypto;
+const crypto = webcrypto;
 
 export interface KeyPair {
-  publicKey: CryptoKey;
-  privateKey: CryptoKey;
+  publicKey: webcrypto.CryptoKey;
+  privateKey: webcrypto.CryptoKey;
 }
 
 /**
@@ -33,7 +33,7 @@ export async function generateKeyPair(): Promise<KeyPair> {
 /**
  * Export public key to Base64 string (for transmission/storage)
  */
-export async function exportPublicKey(publicKey: CryptoKey): Promise<string> {
+export async function exportPublicKey(publicKey: webcrypto.CryptoKey): Promise<string> {
   const exported = await crypto.subtle.exportKey('spki', publicKey);
   return Buffer.from(exported).toString('base64');
 }
@@ -42,7 +42,7 @@ export async function exportPublicKey(publicKey: CryptoKey): Promise<string> {
  * Export private key to Base64 string (for storage)
  * WARNING: In production, this should be encrypted!
  */
-export async function exportPrivateKey(privateKey: CryptoKey): Promise<string> {
+export async function exportPrivateKey(privateKey: webcrypto.CryptoKey): Promise<string> {
   const exported = await crypto.subtle.exportKey('pkcs8', privateKey);
   return Buffer.from(exported).toString('base64');
 }
@@ -50,7 +50,7 @@ export async function exportPrivateKey(privateKey: CryptoKey): Promise<string> {
 /**
  * Import public key from Base64 string
  */
-export async function importPublicKey(base64Key: string): Promise<CryptoKey> {
+export async function importPublicKey(base64Key: string): Promise<webcrypto.CryptoKey> {
   const keyData = Buffer.from(base64Key, 'base64');
   return await crypto.subtle.importKey(
     'spki',
@@ -69,7 +69,7 @@ export async function importPublicKey(base64Key: string): Promise<CryptoKey> {
  */
 export async function importPrivateKey(
   base64Key: string
-): Promise<CryptoKey> {
+): Promise<webcrypto.CryptoKey> {
   const keyData = Buffer.from(base64Key, 'base64');
   return await crypto.subtle.importKey(
     'pkcs8',
@@ -87,7 +87,7 @@ export async function importPrivateKey(
  * Sign data with private key
  */
 export async function sign(
-  privateKey: CryptoKey,
+  privateKey: webcrypto.CryptoKey,
   data: string | Uint8Array
 ): Promise<string> {
   const dataBuffer =
@@ -109,7 +109,7 @@ export async function sign(
  * Verify signature with public key
  */
 export async function verify(
-  publicKey: CryptoKey,
+  publicKey: webcrypto.CryptoKey,
   signature: string,
   data: string | Uint8Array
 ): Promise<boolean> {
@@ -139,7 +139,7 @@ export function createChallenge(): string {
  * Create authentication response (signed challenge)
  */
 export async function createAuthResponse(
-  privateKey: CryptoKey,
+  privateKey: webcrypto.CryptoKey,
   challenge: string
 ): Promise<string> {
   return await sign(privateKey, challenge);
@@ -149,9 +149,26 @@ export async function createAuthResponse(
  * Verify authentication response
  */
 export async function verifyAuthResponse(
-  publicKey: CryptoKey,
+  publicKey: webcrypto.CryptoKey,
   challenge: string,
   response: string
 ): Promise<boolean> {
   return await verify(publicKey, response, challenge);
+}
+
+/**
+ * Helper for signing challenge (used in router-transport)
+ */
+export async function signChallenge(
+  privateKey: webcrypto.CryptoKey,
+  challenge: string
+): Promise<string> {
+  return await sign(privateKey, challenge);
+}
+
+/**
+ * Generate public key in PEM format
+ */
+export async function generatePublicKeyPEM(publicKey: webcrypto.CryptoKey): Promise<string> {
+  return await exportPublicKey(publicKey);
 }

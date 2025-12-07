@@ -5,8 +5,8 @@
 
 import { SmartCardPlatformAdapter } from "@aokiapp/jsapdu-over-ip/server";
 import { RouterServerTransport } from "./router-transport.js";
-import { loadConfig, type CardhostConfig } from "./config.js";
-import { generateKeyPair, storeKeyPair, loadKeyPair } from "./crypto.js";
+import { loadConfig, saveConfig, type CardhostConfig } from "./config.js";
+import { generateKeyPair, exportPublicKey, exportPrivateKey, importPublicKey, importPrivateKey } from "./crypto.js";
 import { getPlatform } from "./platform.js";
 import { startMonitor } from "./monitor/index.js";
 
@@ -14,19 +14,27 @@ async function main() {
   console.log("=== Cardhost Starting ===");
 
   // Load configuration
-  const config: CardhostConfig = await loadConfig();
+  let config: CardhostConfig = await loadConfig();
   console.log(`Cardhost UUID: ${config.uuid}`);
   console.log(`Router URL: ${config.routerUrl}`);
 
   // Load or generate keys
-  let keyPair = await loadKeyPair(config.keysPath);
-  if (!keyPair) {
+  let keyPair;
+  if (config.publicKey && config.privateKey) {
+    console.log("Loading existing key pair from config...");
+    keyPair = {
+      publicKey: await importPublicKey(config.publicKey),
+      privateKey: await importPrivateKey(config.privateKey),
+    };
+  } else {
     console.log("Generating new key pair...");
     keyPair = await generateKeyPair();
-    await storeKeyPair(config.keysPath, keyPair.publicKey, keyPair.privateKey);
-    console.log("Key pair generated and stored");
-  } else {
-    console.log("Loaded existing key pair");
+    const publicKeyB64 = await exportPublicKey(keyPair.publicKey);
+    const privateKeyB64 = await exportPrivateKey(keyPair.privateKey);
+    config.publicKey = publicKeyB64;
+    config.privateKey = privateKeyB64;
+    await saveConfig(config);
+    console.log("Key pair generated and stored in config");
   }
 
   // Get platform (tries PC/SC, falls back to mock)
@@ -55,11 +63,7 @@ async function main() {
   // Start monitor (optional)
   if (config.monitorPort) {
     console.log(`Starting monitor on port ${config.monitorPort}...`);
-    await startMonitor(config.monitorPort, {
-      uuid: config.uuid,
-      routerUrl: config.routerUrl,
-      adapter,
-    });
+    await startMonitor(config.monitorPort, config.uuid);
     console.log(
       `✅ Monitor available at http://localhost:${config.monitorPort}`
     );

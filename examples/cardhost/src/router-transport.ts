@@ -10,18 +10,19 @@ import type {
   RpcEvent,
 } from "@aokiapp/jsapdu-over-ip";
 import WebSocket from "ws";
+import { webcrypto } from 'crypto';
 import { signChallenge, generatePublicKeyPEM } from "./crypto.js";
 
 export interface RouterServerTransportConfig {
   routerUrl: string;
   uuid: string;
-  publicKey: CryptoKey;
-  privateKey: CryptoKey;
+  publicKey: webcrypto.CryptoKey;
+  privateKey: webcrypto.CryptoKey;
   reconnectDelay?: number;
 }
 
 interface RouterMessage {
-  type: "auth-challenge" | "auth-success" | "rpc-request" | "rpc-response" | "rpc-event";
+  type: "auth-challenge" | "auth-success" | "auth-failed" | "registered" | "rpc-request" | "rpc-response" | "rpc-event";
   data?: any;
 }
 
