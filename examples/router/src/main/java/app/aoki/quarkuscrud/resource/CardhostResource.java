@@ -30,6 +30,19 @@ public class CardhostResource {
     public Map<String, Object> listCardhosts(
             @QueryParam("status") @DefaultValue("connected") String status) {
         
+        // Validate status parameter
+        if (!List.of("connected", "disconnected", "all").contains(status)) {
+            throw new WebApplicationException(
+                Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of(
+                        "code", 400,
+                        "message", "Invalid status parameter",
+                        "details", "Status must be one of: connected, disconnected, all"
+                    ))
+                    .build()
+            );
+        }
+        
         List<CardhostInfo> allCardhosts = routingService.getAllCardhostInfo().values()
             .stream()
             .collect(Collectors.toList());

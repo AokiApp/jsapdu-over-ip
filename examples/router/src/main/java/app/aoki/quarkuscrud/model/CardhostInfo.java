@@ -1,5 +1,7 @@
 package app.aoki.quarkuscrud.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import java.time.Instant;
 
 /**
@@ -11,7 +13,11 @@ public class CardhostInfo {
     private String publicKey;
     private String name;
     private String status; // "connected" or "disconnected"
+    
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Instant connectedAt;
+    
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Instant lastHeartbeat;
     
     public CardhostInfo() {}

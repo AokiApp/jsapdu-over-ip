@@ -1,0 +1,33 @@
+paths:
+  /api/controller/sessions:
+    post:
+      tags:
+        - controller
+      summary: Create controller session
+      description: Creates a new controller session for connecting to cardhosts
+      operationId: createControllerSession
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/controller.yaml#/CreateSessionRequest'
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas/controller.yaml#/ControllerSession'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas/common.yaml#/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas/common.yaml#/ErrorResponse'

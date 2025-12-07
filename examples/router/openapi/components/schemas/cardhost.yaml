@@ -1,0 +1,33 @@
+CardhostInfo:
+  type: object
+  required:
+    - uuid
+    - publicKey
+    - status
+    - connectedAt
+  properties:
+    uuid:
+      type: string
+      format: uuid
+      description: UUID for addressing (not authentication)
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    publicKey:
+      type: string
+      description: Public key for authentication and identity
+      example: "base64-encoded-public-key"
+    name:
+      type: string
+      description: Optional friendly name for the cardhost
+      example: "Office Card Reader"
+    status:
+      type: string
+      enum: [connected, disconnected]
+      description: Current connection status
+    connectedAt:
+      type: string
+      format: date-time
+      description: Timestamp when cardhost connected
+    lastHeartbeat:
+      type: string
+      format: date-time
+      description: Timestamp of last heartbeat

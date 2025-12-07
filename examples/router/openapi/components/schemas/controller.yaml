@@ -1,0 +1,31 @@
+CreateSessionRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      description: Optional session name
+      maxLength: 100
+      example: "My Controller Session"
+
+ControllerSession:
+  type: object
+  required:
+    - sessionId
+    - wsUrl
+    - expiresAt
+  properties:
+    sessionId:
+      type: string
+      format: uuid
+      description: Session identifier
+    name:
+      type: string
+      description: Optional session name
+    wsUrl:
+      type: string
+      description: WebSocket URL for this session
+      example: "ws://localhost:8080/ws/controller/{sessionId}"
+    expiresAt:
+      type: string
+      format: date-time
+      description: Session expiration time
