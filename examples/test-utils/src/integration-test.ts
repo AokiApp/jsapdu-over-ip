@@ -1,28 +1,29 @@
 #!/usr/bin/env node
 /**
- * Integration Test Example
+ * Mock Platform Unit Test
  * 
- * This demonstrates the full jsapdu-over-ip system:
- * 1. Mock platform (test-utils) - Simulates smart card
- * 2. Cardhost - Hosts the mock platform
- * 3. Router - Routes messages between components
- * 4. CLI Controller - Sends APDU commands
+ * ⚠️  WARNING: This is NOT a real integration test!
  * 
- * Usage: Run each component in a separate terminal:
- *   Terminal 1: cd examples/router && ./gradlew quarkusDev
- *   Terminal 2: cd examples/cardhost && node dist/index.js
- *   Terminal 3: cd examples/controller-cli && node dist/index.js ws://localhost:8080/ws/controller <uuid>
+ * This only tests the mock platform in isolation and does NOT verify:
+ * - jsapdu-over-ip library integration
+ * - Router message routing
+ * - Full system E2E communication
  * 
- * Or use this script to test the mock platform directly.
+ * For real integration testing, use e2e-test.ts which tests:
+ * CLI Controller → Router → Cardhost-mock → Mock Platform
+ * 
+ * This unit test verifies that MockSmartCardPlatform implements
+ * the jsapdu-interface correctly, but that's all.
  */
 
 import { MockSmartCardPlatform } from "./mock-platform.js";
-import { SmartCardPlatformAdapter } from "@aokiapp/jsapdu-over-ip/server";
 import { CommandApdu } from "@aokiapp/jsapdu-interface";
 import type { SmartCardDeviceInfo } from "@aokiapp/jsapdu-interface";
 
 async function testMockPlatform() {
-  console.log("=== Mock Platform Integration Test ===\n");
+  console.log("=== Mock Platform Unit Test ===");
+  console.log("⚠️  This is a UNIT test - not a real integration test\n");
+  console.log("For E2E testing, use: npm run test:e2e\n");
 
   // 1. Initialize mock platform
   console.log("1️⃣  Initializing mock platform...");
@@ -109,7 +110,7 @@ async function testMockPlatform() {
   await platform.release();
   console.log("✅ Platform released\n");
 
-  console.log("=== Integration Test Complete ===");
+  console.log("=== Mock Platform Unit Test Complete ===");
   console.log("\n📊 Summary:");
   console.log("   ✅ Platform initialization");
   console.log("   ✅ Device enumeration");
@@ -120,7 +121,10 @@ async function testMockPlatform() {
   console.log("   ✅ APDU transmission (GET DATA)");
   console.log("   ✅ APDU transmission (READ BINARY)");
   console.log("   ✅ Proper cleanup");
-  console.log("\n🎉 All tests passed!");
+  console.log("\n✅ Mock platform unit test passed!");
+  console.log("\n⚠️  NOTE: This only tests the mock platform itself.");
+  console.log("   For real integration testing of the full system:");
+  console.log("   npm run test:e2e");
 }
 
 // Run the test
