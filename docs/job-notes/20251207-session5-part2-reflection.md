@@ -97,9 +97,9 @@
 - `entity/Friendship.java` - User friendships
 - `entity/Room.java` - Chat/event rooms
 
-**Restoration Feasibility:** ❌ NOT NEEDED
-- Router doesn't use database
-- All state is in-memory
+**Restoration Feasibility:** NOT NEEDED, BUT IN NEAR FUTURE, SO PREPARATION NEEDED
+- Router doesn't use database (only currently!!!)
+- All state is in-memory (not ideal)
 - No persistence required for message routing
 
 **Value Lost:** Architecture patterns for entity design
@@ -117,9 +117,9 @@
 - `mapper/AuthMethodTypeHandler.java` - Custom type handler
 - `mapper/type/AccountLifecycleTypeHandler.java` - Enum handler
 
-**Restoration Feasibility:** ❌ NOT NEEDED
-- No database = no mappers needed
-- MyBatis removed from dependencies
+**Restoration Feasibility:** ❌ NOT NEEDED, BUT IN NEAR FUTURE, SO PREPARATION NEEDED
+- No database = no mappers needed currently, but in future it should change
+- MyBatis removed from dependencies, but must be restored immediately
 
 **Value Lost:** Examples of database layer patterns
 
@@ -197,8 +197,8 @@
 - ✅ ConstraintViolationExceptionMapper - RESTORE for validation
 - ✅ WebApplicationExceptionMapper - RESTORE for error handling
 - ✅ ErrorResponse model - RESTORE for consistent errors
-- ❌ Authentication* - Not needed yet (pending requirement)
-- ❌ DatabaseHealthCheck - Not needed (no database)
+- ⚠️ Authentication* - Not needed yet (pending requirement)
+- ⚠️ DatabaseHealthCheck - will need in future
 
 **Value Lost:**
 - ❌ Exception handling patterns
@@ -210,8 +210,8 @@
 - `db/migration/V1__Initial_schema.sql` - Initial DB schema
 - `db/migration/V2__Event_user_data_table.sql` - Schema update
 
-**Restoration Feasibility:** ❌ NOT NEEDED
-- Router doesn't use database
+**Restoration Feasibility:** ⚠️ PATTERNS SHOULD INFORM NEW CODE
+- Router doesn't use database, but you need one
 
 ### OpenAPI Schemas - 6 files deleted
 **Files:**
@@ -268,13 +268,14 @@
 
 ### Medium Priority - Consider for Next Session
 
-4. **Transaction Management Patterns**
-   - Not needed now (no database)
+4. **Transaction Management Patterns and databases**
+   - MyBatis is the best
    - Useful if adding persistence later
 
 5. **Authentication Infrastructure**
    - Pending issue #2 requirements
    - Can reference AuthenticationFilter.java pattern
+   - we introduce extra security layer and advanced cryptography so we will make uncommonly advanced one.
 
 ## Restoration Procedures
 
@@ -308,8 +309,8 @@ git show 2e07e16:examples/router/src/main/java/app/aoki/quarkuscrud/service/User
 
 ### Current State: No Database
 - Router is stateless message broker
-- All state in-memory (ConcurrentHashMap)
-- No persistence required for core functionality
+- All state in-memory (ConcurrentHashMap), unstable, fxxxin, mottainai
+- No persistence required for core functionality (you shamefully thought so)
 
 ### Future Considerations
 
@@ -322,29 +323,29 @@ git show 2e07e16:examples/router/src/main/java/app/aoki/quarkuscrud/service/User
 
 2. **What to Restore:**
    - Entity layer patterns
-   - Mapper patterns (or use Panache)
+   - Mapper patterns
    - Migration patterns (Flyway)
    - Transaction patterns
 
 3. **What NOT to Restore:**
-   - Specific entities (User, Event, etc.)
-   - Domain-specific logic
+   - Specific entities as in template (User, Event, etc.) We will recreate ours.
+   - Domain-specific logic as in template. We will recreate ours.
    - Template's MyBatis setup
 
 4. **Better Approach:**
-   - Use Quarkus Hibernate with Panache
-   - Simpler than MyBatis for new projects
+   - Use MyBatis
+   - MyBatis is robust
    - Better Quarkus integration
 
 ### Database Decision Tree
 
 ```
 Need persistence? 
-  ├─ No → Current approach (in-memory) ✅
+  ├─ No → Why not?
   └─ Yes → Add database
-      ├─ Simple CRUD? → Hibernate Panache
+      ├─ Simple CRUD? → MyBatis (SQL is the best)
       ├─ Complex queries? → MyBatis (reference template)
-      └─ Mixed? → Start with Panache, add MyBatis if needed
+      └─ Mixed? → MyBatis (You suggest Panache? Huh? Are you SQL-anti? or RecordActivist?
 ```
 
 ## Current Architecture Status
@@ -368,21 +369,6 @@ Need persistence?
 3. Generate OpenAPI interfaces
 4. Implement authentication (when requirement clear)
 5. Add integration tests
-
-## Time Accounting
-
-**Session Start:** 13:09 UTC  
-**Current:** 14:16 UTC  
-**Elapsed:** 67 minutes
-
-**Breakdown:**
-- Initial exploration: ~10 min
-- REST API implementation: ~20 min
-- Template cleanup: ~15 min
-- Clean architecture refactor: ~15 min
-- Documentation: ~7 min
-
-**Remaining Session Budget:** ~53 minutes (if 120min session)
 
 ## Conclusion
 
