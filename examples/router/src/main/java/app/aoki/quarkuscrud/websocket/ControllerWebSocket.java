@@ -12,6 +12,9 @@ import org.jboss.logging.Logger;
 /**
  * WebSocket endpoint for controller connections
  * Controllers connect here and specify target cardhost UUID
+ * 
+ * Note: Quarkus WebSockets Next creates one instance per connection,
+ * so instance variables are connection-scoped.
  */
 @WebSocket(path = "/ws/controller")
 public class ControllerWebSocket {
@@ -23,7 +26,8 @@ public class ControllerWebSocket {
     @Inject
     ObjectMapper objectMapper;
     
-    private volatile String targetCardhostUuid;
+    // Instance variable is safe - one instance per connection in WebSockets Next
+    private String targetCardhostUuid;
     
     @OnOpen
     public void onOpen(WebSocketConnection connection) {
@@ -44,10 +48,16 @@ public class ControllerWebSocket {
                     
                     // Check if cardhost is connected
                     boolean connected = routingService.isCardhostConnected(targetCardhostUuid);
-                    connection.sendTextAndAwait(
-                        String.format("{\"type\":\"connected\",\"data\":{\"cardhostUuid\":\"%s\",\"available\":%b}}", 
-                            targetCardhostUuid, connected)
-                    );
+                    
+                    // Send confirmation using ObjectMapper to prevent JSON injection
+                    RpcMessage connectedMsg = new RpcMessage();
+                    connectedMsg.setType("connected");
+                    var data = objectMapper.createObjectNode();
+                    data.put("cardhostUuid", targetCardhostUuid);
+                    data.put("available", connected);
+                    connectedMsg.setData(data);
+                    
+                    connection.sendTextAndAwait(objectMapper.writeValueAsString(connectedMsg));
                     LOG.infof("Controller connected targeting cardhost: %s (available: %b)", 
                         targetCardhostUuid, connected);
                 }
@@ -59,9 +69,14 @@ public class ControllerWebSocket {
                 routingService.routeToCardhost(connection, message);
             } else {
                 LOG.warn("Received message from unregistered controller");
-                connection.sendTextAndAwait(
-                    "{\"type\":\"error\",\"data\":{\"message\":\"Not connected to cardhost\"}}"
-                );
+                // Send error using ObjectMapper to prevent JSON injection
+                RpcMessage errorMsg = new RpcMessage();
+                errorMsg.setType("error");
+                var data = objectMapper.createObjectNode();
+                data.put("message", "Not connected to cardhost");
+                errorMsg.setData(data);
+                
+                connection.sendTextAndAwait(objectMapper.writeValueAsString(errorMsg));
             }
             
         } catch (Exception e) {

@@ -1,7 +1,9 @@
 package app.aoki.quarkuscrud.websocket;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.websockets.next.WebSocketConnection;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.util.Map;
@@ -14,6 +16,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @ApplicationScoped
 public class RoutingService {
     private static final Logger LOG = Logger.getLogger(RoutingService.class);
+    
+    @Inject
+    ObjectMapper objectMapper;
     
     // Cardhost connections: UUID -> Connection
     private final Map<String, WebSocketConnection> cardhosts = new ConcurrentHashMap<>();
@@ -66,11 +71,18 @@ public class RoutingService {
         WebSocketConnection cardhostConnection = cardhosts.get(cardhostUuid);
         if (cardhostConnection == null) {
             LOG.warnf("Target cardhost not connected: %s", cardhostUuid);
-            // Send error back to controller
-            controllerConnection.sendTextAndAwait(
-                String.format("{\"type\":\"error\",\"data\":{\"message\":\"Cardhost %s not connected\"}}", 
-                    cardhostUuid)
-            );
+            // Send error back to controller using ObjectMapper to prevent JSON injection
+            try {
+                RpcMessage errorMsg = new RpcMessage();
+                errorMsg.setType("error");
+                var data = objectMapper.createObjectNode();
+                data.put("message", "Cardhost " + cardhostUuid + " not connected");
+                errorMsg.setData(data);
+                
+                controllerConnection.sendTextAndAwait(objectMapper.writeValueAsString(errorMsg));
+            } catch (Exception e) {
+                LOG.errorf(e, "Failed to send error message");
+            }
             return;
         }
         

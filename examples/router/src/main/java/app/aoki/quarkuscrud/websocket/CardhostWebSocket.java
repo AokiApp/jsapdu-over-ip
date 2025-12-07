@@ -12,6 +12,9 @@ import org.jboss.logging.Logger;
 /**
  * WebSocket endpoint for cardhost connections
  * Cardhosts connect here and register with their UUID
+ * 
+ * Note: Quarkus WebSockets Next creates one instance per connection,
+ * so instance variables are connection-scoped.
  */
 @WebSocket(path = "/ws/cardhost")
 public class CardhostWebSocket {
@@ -23,7 +26,8 @@ public class CardhostWebSocket {
     @Inject
     ObjectMapper objectMapper;
     
-    private volatile String cardhostUuid;
+    // Instance variable is safe - one instance per connection in WebSockets Next
+    private String cardhostUuid;
     
     @OnOpen
     public void onOpen(WebSocketConnection connection) {
@@ -43,10 +47,14 @@ public class CardhostWebSocket {
                     cardhostUuid = rpcMessage.getData().get("uuid").asText();
                     routingService.registerCardhost(cardhostUuid, connection);
                     
-                    // Send confirmation
-                    connection.sendTextAndAwait(
-                        "{\"type\":\"registered\",\"data\":{\"uuid\":\"" + cardhostUuid + "\"}}"
-                    );
+                    // Send confirmation using ObjectMapper to prevent JSON injection
+                    RpcMessage confirmationMsg = new RpcMessage();
+                    confirmationMsg.setType("registered");
+                    var data = objectMapper.createObjectNode();
+                    data.put("uuid", cardhostUuid);
+                    confirmationMsg.setData(data);
+                    
+                    connection.sendTextAndAwait(objectMapper.writeValueAsString(confirmationMsg));
                     LOG.infof("Cardhost authenticated: %s", cardhostUuid);
                 }
                 return;
