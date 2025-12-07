@@ -61,7 +61,7 @@ describe('Complete System E2E (CLI → Router → Cardhost-mock)', () => {
       setTimeout(() => {
         ws.close();
         resolve(false);
-      }, 2000);
+      }, TIMEOUTS.ROUTER_CHECK);
     });
   }
 
@@ -70,19 +70,11 @@ describe('Complete System E2E (CLI → Router → Cardhost-mock)', () => {
     const routerAvailable = await isRouterAvailable();
     
     if (!routerAvailable) {
-      console.log('\n⚠️  Router is not running on port', ROUTER_PORT);
-      console.log('Start router with:');
-      console.log(`  cd examples/router && ./gradlew quarkusDev -Dquarkus.http.port=${ROUTER_PORT}`);
-      console.log('\nSkipping E2E tests that require router...\n');
+      // Router not available - tests will skip gracefully
       return;
     }
 
-    console.log('\n=== Starting Complete System E2E Test ===');
-    console.log(`Router: ws://localhost:${ROUTER_PORT}/ws`);
-    console.log(`Cardhost UUID: ${CARDHOST_UUID}\n`);
-    
     // Start cardhost-mock
-    console.log('🚀 Starting cardhost-mock...');
     const cardhostPath = process.cwd() + '/examples/cardhost-mock/dist/index.js';
     
     cardhostProcess = spawn('node', [cardhostPath], {
@@ -108,35 +100,24 @@ describe('Complete System E2E (CLI → Router → Cardhost-mock)', () => {
     });
     
     // Wait for cardhost to be ready
-    console.log('⏳ Waiting for cardhost to connect to router...');
     let attempts = 0;
     while (!cardhostReady && attempts < 20) {
-      await sleep(500);
+      await sleep(TIMEOUTS.CARDHOST_STARTUP);
       attempts++;
-    }
-    
-    if (!cardhostReady) {
-      console.error('❌ Cardhost failed to start within 10 seconds');
-      console.error('Cardhost output:', cardhostOutput.join('\n'));
-    } else {
-      console.log('✅ Cardhost ready\n');
     }
   }, 30000);
 
   afterAll(async () => {
     if (cardhostProcess) {
-      console.log('\n🛑 Stopping cardhost-mock...');
       cardhostProcess.kill('SIGTERM');
-      await sleep(1000);
+      await sleep(TIMEOUTS.CLEANUP);
     }
-    console.log('✅ Cleanup complete\n');
   }, 10000);
 
   describe('System Availability', () => {
     test('router should be available', async () => {
       const available = await isRouterAvailable();
       if (!available) {
-        console.log('⚠️  Skipping test - router not available');
         return; // Skip test gracefully
       }
       expect(available).toBe(true);
@@ -144,7 +125,6 @@ describe('Complete System E2E (CLI → Router → Cardhost-mock)', () => {
 
     test('cardhost-mock should be connected', () => {
       if (!cardhostReady) {
-        console.log('⚠️  Skipping test - cardhost not ready');
         return; // Skip test gracefully
       }
       expect(cardhostReady).toBe(true);
@@ -154,7 +134,6 @@ describe('Complete System E2E (CLI → Router → Cardhost-mock)', () => {
   describe('CLI Controller → Router → Cardhost Flow', () => {
     test('controller should connect to router', async () => {
       if (!await isRouterAvailable()) {
-        console.log('⚠️  Skipping - router not available');
         return;
       }
 
@@ -175,7 +154,6 @@ describe('Complete System E2E (CLI → Router → Cardhost-mock)', () => {
 
     test('controller should discover remote devices', async () => {
       if (!await isRouterAvailable() || !cardhostReady) {
-        console.log('⚠️  Skipping - system not ready');
         return;
       }
 
@@ -226,7 +204,6 @@ describe('Complete System E2E (CLI → Router → Cardhost-mock)', () => {
 
     test('controller should acquire device through router', async () => {
       if (!await isRouterAvailable() || !cardhostReady) {
-        console.log('⚠️  Skipping - system not ready');
         return;
       }
 
@@ -295,7 +272,6 @@ describe('Complete System E2E (CLI → Router → Cardhost-mock)', () => {
 
     test('controller should send APDU and receive response', async () => {
       if (!await isRouterAvailable() || !cardhostReady) {
-        console.log('⚠️  Skipping - system not ready');
         return;
       }
 
@@ -386,12 +362,6 @@ describe('Complete System E2E (CLI → Router → Cardhost-mock)', () => {
               expect(typeof apduResponse.sw1).toBe('number');
               expect(typeof apduResponse.sw2).toBe('number');
               
-              // Success response should be 90 00
-              console.log(`\n✅ APDU Response: SW=${apduResponse.sw1.toString(16).padStart(2, '0')} ${apduResponse.sw2.toString(16).padStart(2, '0')}`);
-              if (apduResponse.data && apduResponse.data.length > 0) {
-                console.log(`   Data: ${apduResponse.data.map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
-              }
-              
               ws.close();
               resolve();
             }
@@ -410,7 +380,6 @@ describe('Complete System E2E (CLI → Router → Cardhost-mock)', () => {
   describe('Error Handling in Full System', () => {
     test('should handle invalid device ID across system', async () => {
       if (!await isRouterAvailable() || !cardhostReady) {
-        console.log('⚠️  Skipping - system not ready');
         return;
       }
 

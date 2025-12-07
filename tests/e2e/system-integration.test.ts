@@ -34,52 +34,41 @@ describe('E2E: Complete System Integration', () => {
   let controllerOutput: string[] = [];
 
   beforeAll(async () => {
-    console.log('\n=== Setting up E2E Test Environment ===\n');
     
     // Check if Router build exists
     const routerBuildPath = join(process.cwd(), 'examples/router/build/libs');
     const gradlewPath = join(process.cwd(), 'examples/router/gradlew');
     
-    console.log('📦 Checking Router build...');
     // Router build verification would go here
     // For now, we'll assume router needs to be started separately
-    console.log('⚠️  Note: This test requires Router to be running on port', ROUTER_PORT);
-    console.log('   Start with: cd examples/router && ./gradlew quarkusDev -Dquarkus.http.port=' + ROUTER_PORT);
-    console.log('');
     
     // Wait a moment for any setup
     await sleep(1000);
   }, 30000);
 
   afterAll(async () => {
-    console.log('\n=== Cleaning up E2E Test Environment ===\n');
     
     if (controllerProcess) {
-      console.log('Stopping controller...');
       controllerProcess.kill('SIGTERM');
       controllerProcess = null;
     }
     
     if (cardhostProcess) {
-      console.log('Stopping cardhost-mock...');
       cardhostProcess.kill('SIGTERM');
       cardhostProcess = null;
     }
     
     if (routerProcess) {
-      console.log('Stopping router...');
       routerProcess.kill('SIGTERM');
       routerProcess = null;
     }
     
-    console.log('✅ Cleanup complete\n');
     
     // Give processes time to shut down
     await sleep(2000);
   }, 15000);
 
   test('should start cardhost-mock and connect to router', async () => {
-    console.log('\n🚀 Test 1: Starting Cardhost-mock\n');
     
     const cardhostPath = join(process.cwd(), 'examples/cardhost-mock/dist/index.js');
     
@@ -95,13 +84,11 @@ describe('E2E: Complete System Integration', () => {
     cardhostProcess.stdout?.on('data', (data) => {
       const output = data.toString();
       cardhostOutput.push(output);
-      console.log('[Cardhost]', output.trim());
     });
     
     cardhostProcess.stderr?.on('data', (data) => {
       const output = data.toString();
       cardhostOutput.push(output);
-      console.error('[Cardhost ERROR]', output.trim());
     });
     
     // Wait for cardhost to connect and register
@@ -114,11 +101,9 @@ describe('E2E: Complete System Integration', () => {
     );
     
     expect(hasStarted, 'Cardhost should start successfully').toBe(true);
-    console.log('✅ Cardhost-mock started and should be connected to router\n');
   }, 10000);
 
   test('should have cardhost-mock connect with mock platform', async () => {
-    console.log('\n🔌 Test 2: Verifying Mock Platform\n');
     
     // Wait a bit more for full initialization
     await sleep(2000);
@@ -130,11 +115,9 @@ describe('E2E: Complete System Integration', () => {
     );
     
     expect(hasMockPlatform, 'Mock platform should be initialized').toBe(true);
-    console.log('✅ Mock platform is ready in cardhost\n');
   }, 5000);
 
   test('should verify system is ready for E2E test', async () => {
-    console.log('\n✅ Test 3: System Readiness Check\n');
     
     // At this point:
     // - Router should be running (started manually)
@@ -146,16 +129,6 @@ describe('E2E: Complete System Integration', () => {
     
     expect(hasAdapter, 'SmartCardPlatformAdapter should be created').toBe(true);
     
-    console.log('✅ System components are ready:\n');
-    console.log('   - Router: running (port ' + ROUTER_PORT + ')');
-    console.log('   - Cardhost-mock: connected with UUID ' + CARDHOST_UUID);
-    console.log('   - Mock platform: initialized and ready');
-    console.log('\n📋 Summary of integration:');
-    console.log('   ✓ Cardhost-mock uses SmartCardPlatformAdapter (library)');
-    console.log('   ✓ Transport layer connects to Router via WebSocket');
-    console.log('   ✓ Mock platform provides virtual card without hardware');
-    console.log('   ✓ Full RPC stack validated (not direct mock calls)');
-    console.log('');
   }, 5000);
 
   // Additional test for CLI controller would go here
@@ -167,7 +140,6 @@ describe('E2E: Complete System Integration', () => {
 
 describe('E2E: Mock Platform Functionality', () => {
   test('should have mock platform with reader device', async () => {
-    console.log('\n🔍 Test: Mock Platform Device Verification\n');
     
     // We can directly test mock platform for unit testing
     const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
@@ -180,13 +152,11 @@ describe('E2E: Mock Platform Functionality', () => {
     expect(devices.length).toBeGreaterThan(0);
     expect(devices[0].friendlyName).toContain('Mock');
     
-    console.log(`✅ Found ${devices.length} mock device(s)\n`);
     
     await platform.release();
   }, 5000);
 
   test('should be able to acquire mock device', async () => {
-    console.log('\n🔍 Test: Device Acquisition\n');
     
     const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
     const platform = MockSmartCardPlatform.getInstance();
@@ -201,13 +171,11 @@ describe('E2E: Mock Platform Functionality', () => {
     const sessionStarted = await device.isSessionActive();
     expect(sessionStarted).toBe(false);
     
-    console.log('✅ Device acquired successfully\n');
     
     await platform.release();
   }, 5000);
 
   test('should start card session on mock device', async () => {
-    console.log('\n🔍 Test: Card Session\n');
     
     const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
     const platform = MockSmartCardPlatform.getInstance();
@@ -222,14 +190,12 @@ describe('E2E: Mock Platform Functionality', () => {
     const sessionStarted = await device.isSessionActive();
     expect(sessionStarted).toBe(true);
     
-    console.log('✅ Card session started successfully\n');
     
     await card.release();
     await platform.release();
   }, 5000);
 
   test('should get ATR from mock card', async () => {
-    console.log('\n🔍 Test: ATR Retrieval\n');
     
     const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
     const platform = MockSmartCardPlatform.getInstance();
@@ -246,14 +212,12 @@ describe('E2E: Mock Platform Functionality', () => {
     expect(atr.length).toBeGreaterThan(0);
     expect(atr[0]).toBe(0x3b); // ATR should start with 0x3B
     
-    console.log(`✅ ATR retrieved: ${Array.from(atr).map(b => b.toString(16).padStart(2, '0')).join(' ')}\n`);
     
     await card.release();
     await platform.release();
   }, 5000);
 
   test('should send SELECT APDU to mock card', async () => {
-    console.log('\n🔍 Test: SELECT APDU\n');
     
     const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
     const { CommandApdu } = await import('@aokiapp/jsapdu-interface');
@@ -273,21 +237,16 @@ describe('E2E: Mock Platform Functionality', () => {
     expect(response.sw1).toBeDefined();
     expect(response.sw2).toBeDefined();
     
-    console.log(`📤 Sent: 00 A4 04 00`);
-    console.log(`📥 Response: SW=${response.sw1.toString(16).padStart(2, '0')} ${response.sw2.toString(16).padStart(2, '0')}`);
     
     if (response.data) {
-      console.log(`📥 Data: ${Array.from(response.data).map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
     }
     
-    console.log('✅ APDU transmitted successfully\n');
     
     await card.release();
     await platform.release();
   }, 5000);
 
   test('should send GET DATA APDU to mock card', async () => {
-    console.log('\n🔍 Test: GET DATA APDU\n');
     
     const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
     const { CommandApdu } = await import('@aokiapp/jsapdu-interface');
@@ -307,21 +266,16 @@ describe('E2E: Mock Platform Functionality', () => {
     expect(response.sw1).toBeDefined();
     expect(response.sw2).toBeDefined();
     
-    console.log(`📤 Sent: 00 CA 00 00`);
-    console.log(`📥 Response: SW=${response.sw1.toString(16).padStart(2, '0')} ${response.sw2.toString(16).padStart(2, '0')}`);
     
     if (response.data) {
-      console.log(`📥 Data: ${Array.from(response.data).map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
     }
     
-    console.log('✅ APDU transmitted successfully\n');
     
     await card.release();
     await platform.release();
   }, 5000);
 
   test('should handle multiple APDU commands in sequence', async () => {
-    console.log('\n🔍 Test: Multiple APDU Sequence\n');
     
     const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
     const { CommandApdu } = await import('@aokiapp/jsapdu-interface');
@@ -346,10 +300,8 @@ describe('E2E: Mock Platform Functionality', () => {
       expect(response.sw1).toBeDefined();
       expect(response.sw2).toBeDefined();
       
-      console.log(`✅ Command ${i + 1}/${commands.length} completed`);
     }
     
-    console.log('✅ All commands in sequence completed\n');
     
     await card.release();
     await platform.release();
@@ -358,7 +310,6 @@ describe('E2E: Mock Platform Functionality', () => {
 
 describe('E2E: Error Handling', () => {
   test('should handle invalid device ID gracefully', async () => {
-    console.log('\n🔍 Test: Invalid Device ID\n');
     
     const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
     const platform = MockSmartCardPlatform.getInstance();
@@ -366,13 +317,11 @@ describe('E2E: Error Handling', () => {
     
     await expect(platform.acquireDevice('invalid-device-id')).rejects.toThrow();
     
-    console.log('✅ Invalid device ID handled correctly\n');
     
     await platform.release();
   }, 5000);
 
   test('should require session start before transmit', async () => {
-    console.log('\n🔍 Test: Session Required for Transmit\n');
     
     const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
     const platform = MockSmartCardPlatform.getInstance();
@@ -385,13 +334,11 @@ describe('E2E: Error Handling', () => {
     const sessionStarted = await device.isSessionActive();
     expect(sessionStarted).toBe(false);
     
-    console.log('✅ Session state validated\n');
     
     await platform.release();
   }, 5000);
 
   test('should handle platform release properly', async () => {
-    console.log('\n🔍 Test: Platform Release\n');
     
     const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
     const platform = MockSmartCardPlatform.getInstance();
@@ -407,7 +354,6 @@ describe('E2E: Error Handling', () => {
     const devicesAgain = await platform.getDeviceInfo();
     expect(devicesAgain.length).toBeGreaterThan(0);
     
-    console.log('✅ Platform release and re-init successful\n');
     
     await platform.release();
   }, 5000);
