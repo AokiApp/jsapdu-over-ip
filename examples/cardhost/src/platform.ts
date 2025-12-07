@@ -11,7 +11,12 @@ import type { SmartCardPlatform } from "@aokiapp/jsapdu-interface";
  */
 export async function getPlatform(): Promise<SmartCardPlatform> {
   try {
-    const { PcscPlatformManager } = await import("@aokiapp/jsapdu-pcsc");
+    // Dynamic import to make it optional - using type assertion for modules that may not be installed
+    const pcscModule = await import("@aokiapp/jsapdu-pcsc" as any).catch(() => null);
+    if (!pcscModule) {
+      throw new Error("@aokiapp/jsapdu-pcsc not installed");
+    }
+    const { PcscPlatformManager } = pcscModule;
     const platformManager = PcscPlatformManager.getInstance();
     const platform = platformManager.getPlatform();
     console.log("Using PC/SC platform");

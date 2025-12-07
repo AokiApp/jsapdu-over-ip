@@ -92,34 +92,72 @@ Controller                Router                Cardhost
 
 - Node.js 20+ (for TypeScript components)
 - Java 21+ (for router)
-- npm or pnpm
+- pnpm (for workspace management)
 - PostgreSQL 15+ (for router - auto-started in dev mode)
 
+### Building All Components
+
+**From Repository Root**:
+
+```bash
+# 1. Install dependencies using pnpm workspaces
+cd /path/to/jsapdu-over-ip
+pnpm install --no-frozen-lockfile
+
+# 2. Build main library
+npm run build
+
+# 3. Build examples (from examples directory)
+cd examples
+pnpm run build  # Builds shared, cardhost, controller
+
+# 4. Build router (requires Java 21)
+cd router
+export JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64
+./gradlew build -x test
+```
+
+**Build Times**:
+- Main library: ~5 seconds
+- Shared package: ~3 seconds
+- Cardhost: ~10 seconds
+- Controller: <1 second
+- Router: ~2 minutes
+
+**Troubleshooting**:
+- If `@aokiapp/jsapdu-interface` fails to install, see build notes in `docs/job-notes/20251207-session8-build-completion.md`
+- Router requires Java 21 specifically (not Java 17 or 25)
+- Use pnpm, not npm, for workspace dependencies
+
 ### Quick Start
+
+**Prerequisites**: Follow "Building All Components" section above first.
 
 **1. Start Router (Terminal 1)**:
 ```bash
 cd examples/router
 export JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64  # or your Java 21 path
-./gradlew quarkusDev
+./gradlew quarkusDev -x test
 ```
 Router will start at http://localhost:8080
 
 **2. Start Cardhost (Terminal 2)**:
 ```bash
 cd examples/cardhost
-npm install  # First time only
-npm run dev
+npm start  # Uses built dist/ directory
 ```
 Cardhost will connect to router at ws://localhost:8080/ws/cardhost
+
+**Note**: Cardhost requires PC/SC hardware. Without it, you'll see an error message explaining requirements.
 
 **3. Start Controller (Terminal 3)**:
 ```bash
 cd examples/controller
-npm install  # First time only
+npm run preview  # Serves built dist/ directory
+# OR for development with hot reload:
 npm run dev
 ```
-Controller UI will open at http://localhost:5173
+Controller UI will open at http://localhost:4173 (preview) or http://localhost:3000 (dev)
 
 ### Testing the Setup
 
