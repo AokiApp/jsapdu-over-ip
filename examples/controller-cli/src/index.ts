@@ -236,24 +236,54 @@ class CLIController {
               }
 
               const hexStr = args.join("").replace(/\s+/g, "");
-              if (!/^[0-9a-fA-F]+$/.test(hexStr) || hexStr.length < 8) {
-                console.log("❌ Invalid APDU hex string");
+              if (!/^[0-9a-fA-F]+$/.test(hexStr) || hexStr.length < 8 || hexStr.length % 2 !== 0) {
+                console.log("❌ Invalid APDU hex string (must be even length hex, at least 8 chars)");
                 break;
               }
 
               // Parse hex string to bytes
-              const bytes = new Uint8Array(hexStr.match(/.{1,2}/g)!.map(b => parseInt(b, 16)));
+              const matches = hexStr.match(/.{1,2}/g);
+              if (!matches) {
+                console.log("❌ Failed to parse hex string");
+                break;
+              }
+              const bytes = new Uint8Array(matches.map(b => parseInt(b, 16)));
               
               // Parse APDU components
+              // Minimum: CLA INS P1 P2 (4 bytes)
               const cla = bytes[0];
               const ins = bytes[1];
               const p1 = bytes[2];
               const p2 = bytes[3];
-              const lc = bytes.length > 4 ? bytes[4] : 0;
-              const data = lc > 0 ? bytes.slice(5, 5 + lc) : null;
-              const le = bytes.length > 5 + lc ? bytes[5 + lc] : null;
+              
+              // Determine APDU case based on remaining bytes
+              let data: Uint8Array | null = null;
+              let le: number | null = null;
+              
+              if (bytes.length === 4) {
+                // Case 1: No Lc, no Le
+                data = null;
+                le = null;
+              } else if (bytes.length === 5) {
+                // Case 2: Le only (expecting response)
+                le = bytes[4];
+                data = null;
+              } else {
+                // Case 3 or 4: Lc + data (+ optional Le)
+                const lc = bytes[4];
+                if (bytes.length >= 5 + lc) {
+                  data = bytes.slice(5, 5 + lc);
+                  if (bytes.length > 5 + lc) {
+                    // Case 4: Has Le after data
+                    le = bytes[5 + lc];
+                  }
+                } else {
+                  console.log("❌ Invalid APDU: Lc doesn't match data length");
+                  break;
+                }
+              }
 
-              const apdu = new CommandApdu(cla, ins, p1, p2, data, le);
+              const apdu = new CommandApdu(cla, ins, p1, p2, data as Uint8Array<ArrayBuffer> | null, le);
               
               console.log(`\n📤 Sending APDU: ${hexStr}`);
               console.log(`   CLA: 0x${cla.toString(16).padStart(2, '0')}`);

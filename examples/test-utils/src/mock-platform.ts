@@ -65,6 +65,10 @@ export class MockSmartCardPlatform extends SmartCardPlatform {
   public async acquireDevice(id: string): Promise<SmartCardDevice> {
     this.assertInitialized();
     
+    if (!id || typeof id !== 'string') {
+      throw new SmartCardError("INVALID_PARAMETER", "Device ID must be a non-empty string");
+    }
+    
     const device = this.devices.get(id);
     if (!device) {
       throw new SmartCardError("READER_ERROR", `Device ${id} not found`);
