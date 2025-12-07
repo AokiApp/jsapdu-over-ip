@@ -1,64 +1,121 @@
-# Quarkus CRUD Template
+# jsapdu-router
 
-![Build](https://img.shields.io/badge/gradle-8.x-02303a?logo=gradle&labelColor=0b1724)
-![Quarkus](https://img.shields.io/badge/quarkus-3.x-b326ff?logo=quarkus&labelColor=111)
-![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
+Java/Quarkus-based router service for connecting remote controllers with cardhosts over the internet.
 
-Opinionated Quarkus 3 starter. Schema-first OpenAPI, PostgreSQL, MyBatis, JWT, observability, generated clients. Clone the repo, run `./gradlew quarkusDev`, and you get a working stack.
+## Overview
+
+The router acts as a message broker between controllers (browser frontend) and cardhosts (hosting physical card readers). It maintains WebSocket connections with both parties and routes RPC messages between them.
 
 ## Features
 
-- **Contracts**
-  - Modular OpenAPI sources under `openapi/`
-  - Custom compiler (`compileOpenApi`) that bundles the spec and feeds SmallRye OpenAPI
-  - OpenAPI Generator producing REST interfaces, DTOs with Bean Validation, and swagger-request-validator tests
-  - TypeScript fetch client packaged via npm `pack`
-- **Persistence**
-  - PostgreSQL 15 through Quarkus Dev Services or external DBs
-  - Flyway migrations under `src/main/resources/db/migration`
-  - MyBatis mappers for explicit SQL control
-- **Operations**
-  - SmallRye JWT for verification + token issuing
-  - SmallRye OpenAPI + Swagger UI exposing the compiled contract
-  - SmallRye Health, Micrometer Prometheus, JSON logging, and CORS presets
-- **Delivery**
-  - Dev UI with info extension enabled
-  - Jib building distroless Java 21 images with OCI labels
-  - Compiled `openapi.yaml` baked into runtime artifacts and client bundles
+- **WebSocket Support**: Real-time bidirectional communication
+- **Message Routing**: Routes RPC messages between controllers and cardhosts
+- **Health Checks**: SmallRye Health endpoints at `/healthz`
+- **Metrics**: Prometheus-compatible metrics at `/q/metrics`
+- **Swagger UI**: API documentation at `/swagger-ui`
+- **Dev Services**: Automatic PostgreSQL container in development mode
 
-## Core stack
+## Prerequisites
 
-- Quarkus 3, RESTEasy Reactive, CDI
-- Java 21 toolchain
-- PostgreSQL 15 (Dev Services and production-ready configs)
-- Flyway, MyBatis
-- SmallRye JWT / OpenAPI / Health
-- Micrometer Prometheus registry
-- JSON logging via `quarkus-logging-json`
-- Swagger UI, Dev UI, Quarkus Info extension
-- OpenAPI Generator 7.x, swagger-request-validator
-- Jib container builds
+- Java 21+
+- Gradle 8.x (wrapper included)
+- Docker (for Dev Services PostgreSQL in dev mode)
 
-## Getting started
+## Development
+
+### Running in Dev Mode
 
 ```bash
 ./gradlew quarkusDev
 ```
 
-Dev Services launches PostgreSQL, Flyway migrates, the OpenAPI compiler runs, generated sources refresh, Dev UI appears at `http://localhost:8080/q/dev-ui`, Swagger UI at `/q/swagger-ui`, metrics at `/q/metrics`, and health probes at `/healthz` (prod profile) or `/q/health` (dev profile).
+This starts:
+- The router on `http://localhost:8080`
+- PostgreSQL via Quarkus Dev Services (automatic Docker container)
+- Flyway migrations
+- Hot reload
+- Dev UI at `http://localhost:8080/q/dev-ui`
+- Swagger UI at `http://localhost:8080/swagger-ui`
 
-To build and ship the same stack:
+### WebSocket Endpoints
+
+- `ws://localhost:8080/ws/cardhost/{uuid}` - Cardhost connection
+- `ws://localhost:8080/ws/controller/{sessionId}/{cardhostUuid}` - Controller connection
+
+### REST API Endpoints
+
+- `GET /api/status` - Router status with connection counts
+- `GET /api/ping` - Simple connectivity test
+- `GET /healthz` - Health check endpoint
+- `GET /q/metrics` - Prometheus metrics
+
+### Building
 
 ```bash
-./gradlew clean build jib
+./gradlew build
 ```
 
-This produces a distroless image (default `ghcr.io/yuki-js/quarkus-crud:${version}`) with OCI labels and the OpenAPI artifact baked in.
+### Running Tests
 
-## Documentation
+```bash
+./gradlew test
+```
 
-Read [docs/index.md](docs/index.md) for the full guide to development, schema, database, observability, deployment, and client workflows.
+## Deployment
+
+### Production Configuration
+
+Set environment variables:
+
+```bash
+QUARKUS_DATASOURCE_USERNAME=jsapdu_router
+QUARKUS_DATASOURCE_PASSWORD=<secure-password>
+QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://db-host:5432/jsapdu_router
+```
+
+### Running
+
+```bash
+java -jar build/quarkus-app/quarkus-run.jar
+```
+
+## Architecture
+
+The router uses:
+- **Quarkus 3.x**: Modern Java framework
+- **WebSockets**: For bidirectional controller/cardhost communication
+- **PostgreSQL**: For cardhost registry (future enhancement)
+- **Flyway**: Database migrations
+- **SmallRye Health**: Health checks
+- **Micrometer + Prometheus**: Metrics
+
+## Message Flow
+
+```
+Controller                Router                Cardhost
+    |                        |                      |
+    | RpcRequest (transmit)  |                      |
+    |----------------------->|                      |
+    |                        | RpcRequest (forward) |
+    |                        |--------------------->|
+    |                        |                      | [Execute on card]
+    |                        |  RpcResponse (result)|
+    |                        |<---------------------|
+    | RpcResponse (result)   |                      |
+    |<-----------------------|                      |
+```
+
+## Implementation Notes
+
+This is a **minimal implementation** focused on message routing. Future enhancements may include:
+
+- Authentication layer (public-key based)
+- Database persistence for cardhost registry
+- Session management
+- Rate limiting
+- Message queuing for offline cardhosts
+- Multi-region routing
 
 ## License
 
-Apache License 2.0
+MIT
