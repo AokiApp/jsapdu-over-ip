@@ -1,0 +1,26 @@
+{
+  "name": "@aokiapp/jsapdu-over-ip-examples-monitor",
+  "version": "0.1.0",
+  "description": "Monitoring UI for cardhost owners",
+  "type": "module",
+  "scripts": {
+    "build": "echo 'Build not yet implemented'",
+    "dev": "echo 'Dev server not yet implemented'",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "jsapdu",
+    "monitor",
+    "ui"
+  ],
+  "author": "AokiApp",
+  "license": "MIT",
+  "dependencies": {
+    "@aokiapp/jsapdu-over-ip-examples-shared": "workspace:*"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.10",
+    "typescript": "^5.9.3"
+  }
+}

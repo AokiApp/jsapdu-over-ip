@@ -1,0 +1,32 @@
+{
+  "name": "@aokiapp/jsapdu-over-ip-examples-cardhost",
+  "version": "0.1.0",
+  "description": "Cardhost service for hosting physical card readers",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "echo 'Dev mode not yet implemented'",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "jsapdu",
+    "cardhost",
+    "pcsc"
+  ],
+  "author": "AokiApp",
+  "license": "MIT",
+  "dependencies": {
+    "@aokiapp/jsapdu-over-ip": "workspace:*",
+    "@aokiapp/jsapdu-over-ip-examples-shared": "workspace:*",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@aokiapp/jsapdu-interface": "^0.0.2",
+    "@types/node": "^24.10.1",
+    "@types/ws": "^8.5.13",
+    "rimraf": "^5.0.10",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@aokiapp/jsapdu-over-ip-examples-shared",
+  "version": "0.1.0",
+  "description": "Shared types and utilities for jsapdu-over-ip examples",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "jsapdu",
+    "shared",
+    "types"
+  ],
+  "author": "AokiApp",
+  "license": "MIT",
+  "devDependencies": {
+    "rimraf": "^5.0.10",
+    "typescript": "^5.9.3"
+  }
+}
