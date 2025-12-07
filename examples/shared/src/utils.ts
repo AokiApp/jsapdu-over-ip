@@ -6,7 +6,7 @@
  * Generate a unique request ID
  */
 export function generateRequestId(): string {
-  return `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `req-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
 /**
