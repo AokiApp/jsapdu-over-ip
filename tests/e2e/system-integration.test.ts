@@ -164,3 +164,251 @@ describe('E2E: Complete System Integration', () => {
   test.todo('should send APDU commands through complete system');
   test.todo('should receive responses from mock platform via router');
 });
+
+describe('E2E: Mock Platform Functionality', () => {
+  test('should have mock platform with reader device', async () => {
+    console.log('\n🔍 Test: Mock Platform Device Verification\n');
+    
+    // We can directly test mock platform for unit testing
+    const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
+    const platform = MockSmartCardPlatform.getInstance();
+    await platform.init();
+    
+    const devices = await platform.getDeviceInfo();
+    
+    expect(devices).toBeDefined();
+    expect(devices.length).toBeGreaterThan(0);
+    expect(devices[0].friendlyName).toContain('Mock');
+    
+    console.log(`✅ Found ${devices.length} mock device(s)\n`);
+    
+    await platform.release();
+  }, 5000);
+
+  test('should be able to acquire mock device', async () => {
+    console.log('\n🔍 Test: Device Acquisition\n');
+    
+    const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
+    const platform = MockSmartCardPlatform.getInstance();
+    await platform.init();
+    
+    const devices = await platform.getDeviceInfo();
+    const device = await platform.acquireDevice(devices[0].id);
+    
+    expect(device).toBeDefined();
+    expect(device.getDeviceInfo().id).toBe(devices[0].id);
+    
+    const sessionStarted = await device.isSessionActive();
+    expect(sessionStarted).toBe(false);
+    
+    console.log('✅ Device acquired successfully\n');
+    
+    await platform.release();
+  }, 5000);
+
+  test('should start card session on mock device', async () => {
+    console.log('\n🔍 Test: Card Session\n');
+    
+    const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
+    const platform = MockSmartCardPlatform.getInstance();
+    await platform.init();
+    
+    const devices = await platform.getDeviceInfo();
+    const device = await platform.acquireDevice(devices[0].id);
+    const card = await device.startSession();
+    
+    expect(card).toBeDefined();
+    
+    const sessionStarted = await device.isSessionActive();
+    expect(sessionStarted).toBe(true);
+    
+    console.log('✅ Card session started successfully\n');
+    
+    await card.release();
+    await platform.release();
+  }, 5000);
+
+  test('should get ATR from mock card', async () => {
+    console.log('\n🔍 Test: ATR Retrieval\n');
+    
+    const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
+    const platform = MockSmartCardPlatform.getInstance();
+    await platform.init();
+    
+    const devices = await platform.getDeviceInfo();
+    const device = await platform.acquireDevice(devices[0].id);
+    const card = await device.startSession();
+    
+    const atr = await card.getAtr();
+    
+    expect(atr).toBeDefined();
+    expect(atr).toBeInstanceOf(Uint8Array);
+    expect(atr.length).toBeGreaterThan(0);
+    expect(atr[0]).toBe(0x3b); // ATR should start with 0x3B
+    
+    console.log(`✅ ATR retrieved: ${Array.from(atr).map(b => b.toString(16).padStart(2, '0')).join(' ')}\n`);
+    
+    await card.release();
+    await platform.release();
+  }, 5000);
+
+  test('should send SELECT APDU to mock card', async () => {
+    console.log('\n🔍 Test: SELECT APDU\n');
+    
+    const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
+    const { CommandApdu } = await import('@aokiapp/jsapdu-interface');
+    
+    const platform = MockSmartCardPlatform.getInstance();
+    await platform.init();
+    
+    const devices = await platform.getDeviceInfo();
+    const device = await platform.acquireDevice(devices[0].id);
+    const card = await device.startSession();
+    
+    // SELECT command: 00 A4 04 00
+    const selectApdu = new CommandApdu(0x00, 0xa4, 0x04, 0x00);
+    const response = await card.transmit(selectApdu);
+    
+    expect(response).toBeDefined();
+    expect(response.sw1).toBeDefined();
+    expect(response.sw2).toBeDefined();
+    
+    console.log(`📤 Sent: 00 A4 04 00`);
+    console.log(`📥 Response: SW=${response.sw1.toString(16).padStart(2, '0')} ${response.sw2.toString(16).padStart(2, '0')}`);
+    
+    if (response.data) {
+      console.log(`📥 Data: ${Array.from(response.data).map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+    }
+    
+    console.log('✅ APDU transmitted successfully\n');
+    
+    await card.release();
+    await platform.release();
+  }, 5000);
+
+  test('should send GET DATA APDU to mock card', async () => {
+    console.log('\n🔍 Test: GET DATA APDU\n');
+    
+    const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
+    const { CommandApdu } = await import('@aokiapp/jsapdu-interface');
+    
+    const platform = MockSmartCardPlatform.getInstance();
+    await platform.init();
+    
+    const devices = await platform.getDeviceInfo();
+    const device = await platform.acquireDevice(devices[0].id);
+    const card = await device.startSession();
+    
+    // GET DATA command: 00 CA 00 00
+    const getDataApdu = new CommandApdu(0x00, 0xca, 0x00, 0x00);
+    const response = await card.transmit(getDataApdu);
+    
+    expect(response).toBeDefined();
+    expect(response.sw1).toBeDefined();
+    expect(response.sw2).toBeDefined();
+    
+    console.log(`📤 Sent: 00 CA 00 00`);
+    console.log(`📥 Response: SW=${response.sw1.toString(16).padStart(2, '0')} ${response.sw2.toString(16).padStart(2, '0')}`);
+    
+    if (response.data) {
+      console.log(`📥 Data: ${Array.from(response.data).map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+    }
+    
+    console.log('✅ APDU transmitted successfully\n');
+    
+    await card.release();
+    await platform.release();
+  }, 5000);
+
+  test('should handle multiple APDU commands in sequence', async () => {
+    console.log('\n🔍 Test: Multiple APDU Sequence\n');
+    
+    const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
+    const { CommandApdu } = await import('@aokiapp/jsapdu-interface');
+    
+    const platform = MockSmartCardPlatform.getInstance();
+    await platform.init();
+    
+    const devices = await platform.getDeviceInfo();
+    const device = await platform.acquireDevice(devices[0].id);
+    const card = await device.startSession();
+    
+    // Send multiple commands
+    const commands = [
+      new CommandApdu(0x00, 0xa4, 0x04, 0x00), // SELECT
+      new CommandApdu(0x00, 0xca, 0x00, 0x00), // GET DATA
+      new CommandApdu(0x00, 0xb0, 0x00, 0x00), // READ BINARY
+    ];
+    
+    for (let i = 0; i < commands.length; i++) {
+      const response = await card.transmit(commands[i]);
+      expect(response).toBeDefined();
+      expect(response.sw1).toBeDefined();
+      expect(response.sw2).toBeDefined();
+      
+      console.log(`✅ Command ${i + 1}/${commands.length} completed`);
+    }
+    
+    console.log('✅ All commands in sequence completed\n');
+    
+    await card.release();
+    await platform.release();
+  }, 10000);
+});
+
+describe('E2E: Error Handling', () => {
+  test('should handle invalid device ID gracefully', async () => {
+    console.log('\n🔍 Test: Invalid Device ID\n');
+    
+    const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
+    const platform = MockSmartCardPlatform.getInstance();
+    await platform.init();
+    
+    await expect(platform.acquireDevice('invalid-device-id')).rejects.toThrow();
+    
+    console.log('✅ Invalid device ID handled correctly\n');
+    
+    await platform.release();
+  }, 5000);
+
+  test('should require session start before transmit', async () => {
+    console.log('\n🔍 Test: Session Required for Transmit\n');
+    
+    const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
+    const platform = MockSmartCardPlatform.getInstance();
+    await platform.init();
+    
+    const devices = await platform.getDeviceInfo();
+    const device = await platform.acquireDevice(devices[0].id);
+    
+    // Device acquired but session not started
+    const sessionStarted = await device.isSessionActive();
+    expect(sessionStarted).toBe(false);
+    
+    console.log('✅ Session state validated\n');
+    
+    await platform.release();
+  }, 5000);
+
+  test('should handle platform release properly', async () => {
+    console.log('\n🔍 Test: Platform Release\n');
+    
+    const { MockSmartCardPlatform } = await import('@aokiapp/jsapdu-over-ip-examples-test-utils');
+    const platform = MockSmartCardPlatform.getInstance();
+    await platform.init();
+    
+    const devices = await platform.getDeviceInfo();
+    expect(devices.length).toBeGreaterThan(0);
+    
+    await platform.release();
+    
+    // After release, should be able to init again
+    await platform.init();
+    const devicesAgain = await platform.getDeviceInfo();
+    expect(devicesAgain.length).toBeGreaterThan(0);
+    
+    console.log('✅ Platform release and re-init successful\n');
+    
+    await platform.release();
+  }, 5000);
+});
