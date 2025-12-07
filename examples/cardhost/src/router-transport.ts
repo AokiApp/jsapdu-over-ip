@@ -109,9 +109,21 @@ export class RouterServerTransport implements ServerTransport {
         reject(new Error("Connection timeout"));
       }, 10000);
 
-      this.ws.on("open", () => {
+      this.ws.on("open", async () => {
         clearTimeout(timeout);
         console.log("[RouterServerTransport] WebSocket connected");
+        
+        // Send authentication immediately (simplified - no challenge/response for now)
+        const publicKeyPEM = await generatePublicKeyPEM(this.config.publicKey);
+        const authMessage: RouterMessage = {
+          type: "auth-success",
+          data: {
+            uuid: this.config.uuid,
+            publicKey: publicKeyPEM,
+          },
+        };
+        
+        this.ws!.send(JSON.stringify(authMessage));
       });
 
       this.ws.on("message", async (data: WebSocket.Data) => {
@@ -157,30 +169,8 @@ export class RouterServerTransport implements ServerTransport {
     connectResolve: (value: void) => void
   ): Promise<void> {
     switch (message.type) {
-      case "auth-challenge": {
-        // Router sends challenge for authentication
-        const challenge = message.data.challenge;
-        const publicKeyPEM = await generatePublicKeyPEM(this.config.publicKey);
-        const signature = await signChallenge(
-          challenge,
-          this.config.privateKey
-        );
-
-        const authResponse: RouterMessage = {
-          type: "auth-success",
-          data: {
-            uuid: this.config.uuid,
-            publicKey: publicKeyPEM,
-            signature,
-          },
-        };
-
-        this.ws!.send(JSON.stringify(authResponse));
-        break;
-      }
-
-      case "auth-success": {
-        console.log("[RouterServerTransport] Authentication successful");
+      case "registered": {
+        console.log("[RouterServerTransport] Registration successful");
         connectResolve();
         break;
       }

@@ -15,27 +15,23 @@ dependencies {
     implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
     implementation 'io.quarkus:quarkus-rest'
     implementation 'io.quarkus:quarkus-rest-jackson'
-    implementation 'io.quarkiverse.mybatis:quarkus-mybatis:2.4.1'
-    implementation 'io.quarkus:quarkus-jdbc-postgresql'
-    implementation 'io.quarkus:quarkus-flyway'
     implementation 'io.quarkus:quarkus-arc'
     
     // CORS support via Vert.x HTTP
     implementation 'io.quarkus:quarkus-vertx-http'
     
+    // WebSocket support for jsapdu-over-ip routing
+    implementation 'io.quarkus:quarkus-websockets-next'
+    
     // OpenAPI and Swagger UI support
     implementation 'io.quarkus:quarkus-smallrye-openapi'
     implementation 'io.quarkus:quarkus-swagger-ui'
     
-    // Validation support for generated models
+    // Validation support for request DTOs
     implementation 'io.quarkus:quarkus-hibernate-validator'
     
     // Health checks
     implementation 'io.quarkus:quarkus-smallrye-health'
-    
-    // JWT authentication for guest users
-    implementation 'io.quarkus:quarkus-smallrye-jwt'
-    implementation 'io.quarkus:quarkus-smallrye-jwt-build'
     
     // Observability: JSON structured logging
     implementation 'io.quarkus:quarkus-logging-json'
@@ -52,10 +48,6 @@ dependencies {
     
     // OpenAPI contract validation for tests
     testImplementation 'com.atlassian.oai:swagger-request-validator-restassured:2.41.0'
-    
-    // Dev Services - provides automatic containerized PostgreSQL for dev mode
-    // This enables Quarkus to start a PostgreSQL container automatically when running in dev mode
-    implementation 'io.quarkus:quarkus-devservices-postgresql'
     
     // Dev UI extensions - enhances the Quarkus Dev UI with additional features
     implementation 'io.quarkus:quarkus-info'

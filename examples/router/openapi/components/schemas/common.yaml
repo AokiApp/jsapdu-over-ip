@@ -1,19 +1,17 @@
 ErrorResponse:
   type: object
-  description: Error payload returned by the API.
   required:
-    - error
+    - code
+    - message
   properties:
-    error:
+    code:
+      type: integer
+      description: Error code
+      example: 500
+    message:
       type: string
-      description: Human-readable description of the error.
-      example: Authentication required
+      description: Error message
+      example: "Internal server error"
     details:
-      type: object
-      description: Optional structured details about the error.
-      additionalProperties: true
-LocalDateTime:
-  type: string
-  format: date-time
-  description: ISO-8601 timestamp with timezone information.
-  example: 2025-01-01T10:15:30Z
+      type: string
+      description: Additional error details

@@ -2,68 +2,62 @@
 
 This directory contains example implementations demonstrating how to use jsapdu-over-ip for remote smart card access.
 
-## ⚠️ Current Status
+## ✅ Current Status
 
-**This examples directory is in FOUNDATION STATE ONLY.**
+**Implementation complete - ready for testing!**
 
 - ✅ Architecture documentation complete
 - ✅ Package structure created
-- ✅ Utility files preserved (config, crypto, UI)
-- ❌ **NO WORKING IMPLEMENTATION YET**
-- ❌ Incorrect RPC reimplementation was deleted
-- ⏳ Next session will implement using library correctly
+- ✅ Cardhost implementation using SmartCardPlatformAdapter
+- ✅ Controller implementation using RemoteSmartCardPlatform (React)
+- ✅ Router WebSocket implementation (Java/Quarkus)
+- ✅ All components build successfully
+- ⏳ End-to-end testing in progress
 
-## What Exists Now
-
-### Cardhost (`cardhost/`)
-**Files present:**
-- `src/config.ts` - Configuration utilities
-- `src/crypto.ts` - Authentication helpers
-- `src/monitor/index.ts` - Monitoring UI (standalone)
-- `package.json`, `tsconfig.json` - Build config
-
-**Missing (to be implemented):**
-- `src/index.ts` - Main entry point using SmartCardPlatformAdapter
-- `src/router-transport.ts` - ServerTransport implementation
-- Mock or real SmartCardPlatform implementation
-
-### Controller (`controller/`)
-**Files present:**
-- `src/crypto.ts` - Authentication helpers
-- `src/api-client.ts` - REST API client
-- `public/index.html` - UI template
-- `public/styles.css` - Styles
-- `vite.config.ts` - Build config
-- `package.json`, `tsconfig.json` - Build config
-
-**Missing (to be implemented):**
-- `src/index.ts` - Main entry point
-- `src/app.ts` - Application logic using RemoteSmartCardPlatform
-- `src/router-transport.ts` - ClientTransport implementation
-
-### Router (`router/`)
-**Not started** - Java/Quarkus message broker
-
-### Shared (`shared/`)
-**Minimal package** - Will use RPC types from jsapdu-over-ip library
-
-## Architecture (Planned)
+## Architecture
 
 See `docs/examples-architecture.md` for detailed architecture using jsapdu-over-ip library correctly.
 
 **Key principle**: Use `SmartCardPlatformAdapter` and `RemoteSmartCardPlatform` from the library, NOT custom RPC implementation.
-1. Cardhost connects to router (outbound), registers with UUID + public key
-2. Controller connects to router (outbound), authenticates with public key
-3. Controller discovers available cardhosts via REST API
-4. Controller sends APDU commands via WebSocket, specifying target cardhost UUID
-5. Router routes commands to cardhost based on UUID
-6. Cardhost executes on physical card, returns response
-7. Router routes response back to controller
 
-**Security**:
-- Public-key cryptography for all authentication (ECDSA P-256)
-- UUIDs used only for addressing, not authentication
-- TLS/WSS recommended for production
+### Components
+
+1. **Cardhost** (Node.js + TypeScript)
+   - Uses `SmartCardPlatformAdapter` from `@aokiapp/jsapdu-over-ip/server`
+   - Wraps real PC/SC platform or mock platform
+   - Connects to router via WebSocket (outbound)
+   - Registers with UUID
+
+2. **Controller** (React + TypeScript)
+   - Uses `RemoteSmartCardPlatform` from `@aokiapp/jsapdu-over-ip/client`
+   - Browser-based GUI for sending APDU commands
+   - Connects to router via WebSocket
+   - Specifies target cardhost UUID
+
+3. **Router** (Java + Quarkus)
+   - WebSocket message broker
+   - Routes RPC messages between controller and cardhost
+   - Does NOT parse APDU or jsapdu methods
+   - Provides cardhost discovery REST API
+
+### Message Flow
+
+```
+Controller                Router                Cardhost
+    |                        |                      |
+    | connect (uuid)         |                      |
+    |----------------------->|                      |
+    |                        |  auth-success (uuid) |
+    |                        |<---------------------|
+    |                        |                      |
+    | rpc-request            |                      |
+    |----------------------->|  rpc-request         |
+    |                        |--------------------->|
+    |                        |                      | [Execute on card]
+    |                        |  rpc-response        |
+    |  rpc-response          |<---------------------|
+    |<-----------------------|                      |
+```
 
 ## Development
 
@@ -71,74 +65,59 @@ See `docs/examples-architecture.md` for detailed architecture using jsapdu-over-
 
 - Node.js 20+ (for TypeScript components)
 - Java 21+ (for router)
-- PostgreSQL 15+ (for router)
 - npm or pnpm
+- PostgreSQL 15+ (for router - auto-started in dev mode)
 
-### Install Dependencies
+### Quick Start
 
-From repository root:
-```bash
-# Main package
-npm install
-
-# Examples workspace
-cd examples
-npm install
-```
-
-**Note**: Requires GitHub token for `@aokiapp/jsapdu-interface`:
-```bash
-export NODE_AUTH_TOKEN="ghp_your_token_here"
-npm install
-```
-
-### Build All Components
-
-```bash
-cd examples
-npm run build
-```
-
-### Development Mode
-
-Run each component in separate terminals:
-
-**Terminal 1 - Router** (once implemented):
+**1. Start Router (Terminal 1)**:
 ```bash
 cd examples/router
+export JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64  # or your Java 21 path
 ./gradlew quarkusDev
 ```
+Router will start at http://localhost:8080
 
-**Terminal 2 - Cardhost**:
+**2. Start Cardhost (Terminal 2)**:
 ```bash
 cd examples/cardhost
+npm install  # First time only
 npm run dev
 ```
+Cardhost will connect to router at ws://localhost:8080/ws/cardhost
 
-**Terminal 3 - Controller**:
+**3. Start Controller (Terminal 3)**:
 ```bash
 cd examples/controller
+npm install  # First time only
 npm run dev
 ```
+Controller UI will open at http://localhost:5173
 
-### Testing
+### Testing the Setup
 
-#### Without Hardware
+1. Check router logs - you should see cardhost connection
+2. Open controller UI in browser
+3. In controller, enter cardhost UUID (check cardhost logs for UUID)
+4. Click "Connect"
+5. Select a device from the list
+6. Send test APDU command (e.g., `00 A4 04 00`)
+7. View response in UI
 
-The cardhost includes a mock platform that simulates card readers:
-
-```bash
-cd examples/cardhost
-USE_MOCK=true npm run dev
-```
-
-#### With Real Hardware
-
-Replace mock platform with jsapdu-pcsc (when available):
+### Building for Production
 
 ```bash
+# Router
+cd examples/router
+./gradlew build
+
+# Cardhost
 cd examples/cardhost
-USE_MOCK=false npm run dev
+npm run build
+
+# Controller
+cd examples/controller
+npm run build
 ```
 
 ## Configuration
