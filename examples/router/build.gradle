@@ -23,6 +23,9 @@ dependencies {
     // CORS support via Vert.x HTTP
     implementation 'io.quarkus:quarkus-vertx-http'
     
+    // WebSocket support for jsapdu-over-ip routing
+    implementation 'io.quarkus:quarkus-websockets-next'
+    
     // OpenAPI and Swagger UI support
     implementation 'io.quarkus:quarkus-smallrye-openapi'
     implementation 'io.quarkus:quarkus-swagger-ui'

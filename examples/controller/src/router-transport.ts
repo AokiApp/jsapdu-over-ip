@@ -62,13 +62,10 @@ export class RouterClientTransport implements ClientTransport {
       // Store pending request
       this.pendingCalls.set(request.id, { resolve, reject });
 
-      // Send request to router
+      // Send request directly - router knows which cardhost based on session
       const message: RouterMessage = {
         type: "rpc-request",
-        data: {
-          target: this.config.cardhostUuid,
-          request,
-        },
+        data: request,
       };
 
       this.ws.send(JSON.stringify(message));
@@ -131,7 +128,16 @@ export class RouterClientTransport implements ClientTransport {
       this.ws.onopen = () => {
         clearTimeout(timeout);
         console.log("[RouterClientTransport] WebSocket connected");
-        this.connected = true;
+        
+        // Send connection request with target cardhost UUID
+        const connectMessage: RouterMessage = {
+          type: "connect",
+          data: {
+            cardhostUuid: this.config.cardhostUuid,
+          },
+        };
+        
+        this.ws!.send(JSON.stringify(connectMessage));
       };
 
       this.ws.onmessage = (event: MessageEvent) => {
@@ -166,22 +172,15 @@ export class RouterClientTransport implements ClientTransport {
     connectResolve: (value: void) => void
   ): void {
     switch (message.type) {
-      case "auth-challenge": {
-        // For controller, we might use simpler auth or token
-        // For now, just acknowledge
-        const authResponse: RouterMessage = {
-          type: "auth-success",
-          data: {
-            target: this.config.cardhostUuid,
-          },
-        };
-        this.ws!.send(JSON.stringify(authResponse));
+      case "connected": {
+        console.log("[RouterClientTransport] Connected to router, cardhost:", this.config.cardhostUuid);
+        this.connected = true;
+        connectResolve();
         break;
       }
 
-      case "auth-success": {
-        console.log("[RouterClientTransport] Authentication successful");
-        connectResolve();
+      case "error": {
+        console.error("[RouterClientTransport] Router error:", message.data);
         break;
       }
 
