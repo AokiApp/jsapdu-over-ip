@@ -236,3 +236,71 @@ Let's begin implementation!
 - ✅ jsapdu-interface compliance
 
 This implementation is architecturally correct!
+
+## Review Feedback and Improvements
+
+### Feedback from @yuki-js
+
+1. **Mock in examples**: Removed mock fallback. Examples should show real usage only.
+2. **useRef vs Manager**: Created CardManager class for better separation of concerns
+3. **Monolithic App**: Broke down into smaller components (ConnectionPanel, DeviceList, ApduForm, ResponseDisplay)
+4. **getElementById anti-pattern**: Replaced with proper React controlled components
+5. **jsapdu-over-ip gaps**: Noted process for handling insufficient functionality
+
+### Improvements Made
+
+**Cardhost (examples/cardhost/src/platform.ts)**:
+- Removed all mock/fallback code
+- PC/SC only with helpful error message
+- Clear instructions if PC/SC unavailable
+- Examples demonstrate primary use case
+
+**Controller Architecture**:
+- Created `CardManager.ts` - encapsulates platform logic
+- Manager handles all jsapdu-over-ip interactions
+- React components focus on UI only
+- Clean separation of concerns
+
+**Component Breakdown**:
+- `ConnectionPanel.tsx` - Connection form with controlled inputs
+- `DeviceList.tsx` - Display devices
+- `ApduForm.tsx` - APDU command form
+- `ResponseDisplay.tsx` - Response display
+- `App.tsx` - Orchestrates components, minimal logic
+
+**React Patterns**:
+- No direct DOM manipulation (getElementById removed)
+- Controlled components with value/onChange
+- Manager pattern instead of useRef for complex objects
+- Single useEffect for manager subscription
+- State updates via manager listener pattern
+
+### Architecture Benefits
+
+1. **Testability**: Manager can be unit tested independently
+2. **Maintainability**: Each component has single responsibility
+3. **React Best Practices**: Proper controlled components, no DOM mixing
+4. **Scalability**: Easy to add new components or features
+5. **Type Safety**: Full TypeScript types throughout
+
+### Completion Criteria Check #2
+
+**Code Quality**:
+- ✅ No mock fallback in examples
+- ✅ Manager class pattern (not useRef)
+- ✅ Modular component architecture
+- ✅ Proper React patterns (no getElementById)
+- ✅ Clean separation: Manager (logic) + Components (UI)
+
+**Library Usage**:
+- ✅ CardManager encapsulates RemoteSmartCardPlatform
+- ✅ All jsapdu-over-ip interactions in one place
+- ✅ Still uses library correctly (no manual RPC)
+
+**Requirements**:
+- ✅ React with minimal hooks (useEffect for subscription only)
+- ✅ Real PC/SC only (no mock in examples)
+- ✅ Modular, maintainable code
+- ✅ Type-safe throughout
+
+The implementation now follows React best practices and proper architectural patterns!
