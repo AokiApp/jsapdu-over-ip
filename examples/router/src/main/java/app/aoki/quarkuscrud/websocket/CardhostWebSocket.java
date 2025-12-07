@@ -1,18 +1,19 @@
 package app.aoki.quarkuscrud.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.websockets.next.OnOpen;
+import io.quarkus.websockets.next.OnTextMessage;
+import io.quarkus.websockets.next.OnClose;
+import io.quarkus.websockets.next.WebSocket;
+import io.quarkus.websockets.next.WebSocketConnection;
 import jakarta.inject.Inject;
-import jakarta.websocket.*;
-import jakarta.websocket.server.ServerEndpoint;
 import org.jboss.logging.Logger;
-
-import java.io.IOException;
 
 /**
  * WebSocket endpoint for cardhost connections
  * Cardhosts connect here and register with their UUID
  */
-@ServerEndpoint("/ws/cardhost")
+@WebSocket(path = "/ws/cardhost")
 public class CardhostWebSocket {
     private static final Logger LOG = Logger.getLogger(CardhostWebSocket.class);
     
@@ -25,12 +26,12 @@ public class CardhostWebSocket {
     private String cardhostUuid;
     
     @OnOpen
-    public void onOpen(Session session) {
-        LOG.infof("Cardhost WebSocket connection opened: %s", session.getId());
+    public void onOpen(WebSocketConnection connection) {
+        LOG.infof("Cardhost WebSocket connection opened: %s", connection.id());
     }
     
-    @OnMessage
-    public void onMessage(String message, Session session) {
+    @OnTextMessage
+    public void onMessage(String message, WebSocketConnection connection) {
         try {
             RpcMessage rpcMessage = objectMapper.readValue(message, RpcMessage.class);
             
@@ -40,10 +41,10 @@ public class CardhostWebSocket {
                 // Simplified authentication - in production, verify signatures
                 if (rpcMessage.getData() != null && rpcMessage.getData().has("uuid")) {
                     cardhostUuid = rpcMessage.getData().get("uuid").asText();
-                    routingService.registerCardhost(cardhostUuid, session);
+                    routingService.registerCardhost(cardhostUuid, connection);
                     
                     // Send confirmation
-                    session.getBasicRemote().sendText(
+                    connection.sendTextAndAwait(
                         "{\"type\":\"registered\",\"data\":{\"uuid\":\"" + cardhostUuid + "\"}}"
                     );
                     LOG.infof("Cardhost authenticated: %s", cardhostUuid);
@@ -58,22 +59,16 @@ public class CardhostWebSocket {
                 LOG.warn("Received message from unauthenticated cardhost");
             }
             
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOG.errorf(e, "Error processing cardhost message: %s", message);
         }
     }
     
     @OnClose
-    public void onClose(Session session, CloseReason closeReason) {
+    public void onClose(WebSocketConnection connection) {
         if (cardhostUuid != null) {
             routingService.unregisterCardhost(cardhostUuid);
         }
-        LOG.infof("Cardhost WebSocket connection closed: %s, reason: %s", 
-            session.getId(), closeReason);
-    }
-    
-    @OnError
-    public void onError(Session session, Throwable throwable) {
-        LOG.errorf(throwable, "Cardhost WebSocket error: %s", session.getId());
+        LOG.infof("Cardhost WebSocket connection closed: %s", connection.id());
     }
 }

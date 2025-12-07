@@ -1,10 +1,9 @@
 package app.aoki.quarkuscrud.websocket;
 
+import io.quarkus.websockets.next.WebSocketConnection;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.websocket.Session;
 import org.jboss.logging.Logger;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -16,17 +15,17 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RoutingService {
     private static final Logger LOG = Logger.getLogger(RoutingService.class);
     
-    // Cardhost connections: UUID -> Session
-    private final Map<String, Session> cardhosts = new ConcurrentHashMap<>();
+    // Cardhost connections: UUID -> Connection
+    private final Map<String, WebSocketConnection> cardhosts = new ConcurrentHashMap<>();
     
-    // Controller connections: Session -> target cardhost UUID
-    private final Map<Session, String> controllers = new ConcurrentHashMap<>();
+    // Controller connections: Connection -> target cardhost UUID
+    private final Map<WebSocketConnection, String> controllers = new ConcurrentHashMap<>();
     
     /**
      * Register a cardhost connection
      */
-    public void registerCardhost(String uuid, Session session) {
-        cardhosts.put(uuid, session);
+    public void registerCardhost(String uuid, WebSocketConnection connection) {
+        cardhosts.put(uuid, connection);
         LOG.infof("Cardhost registered: %s", uuid);
     }
     
@@ -41,63 +40,63 @@ public class RoutingService {
     /**
      * Register a controller connection
      */
-    public void registerController(Session session, String targetCardhostUuid) {
-        controllers.put(session, targetCardhostUuid);
+    public void registerController(WebSocketConnection connection, String targetCardhostUuid) {
+        controllers.put(connection, targetCardhostUuid);
         LOG.infof("Controller registered targeting cardhost: %s", targetCardhostUuid);
     }
     
     /**
      * Unregister a controller connection
      */
-    public void unregisterController(Session session) {
-        String target = controllers.remove(session);
+    public void unregisterController(WebSocketConnection connection) {
+        String target = controllers.remove(connection);
         LOG.infof("Controller unregistered (was targeting: %s)", target);
     }
     
     /**
      * Route message from controller to cardhost
      */
-    public void routeToCardhost(Session controllerSession, String message) throws IOException {
-        String cardhostUuid = controllers.get(controllerSession);
+    public void routeToCardhost(WebSocketConnection controllerConnection, String message) {
+        String cardhostUuid = controllers.get(controllerConnection);
         if (cardhostUuid == null) {
-            LOG.warnf("Controller session not registered: %s", controllerSession.getId());
+            LOG.warnf("Controller connection not registered: %s", controllerConnection.id());
             return;
         }
         
-        Session cardhostSession = cardhosts.get(cardhostUuid);
-        if (cardhostSession == null) {
+        WebSocketConnection cardhostConnection = cardhosts.get(cardhostUuid);
+        if (cardhostConnection == null) {
             LOG.warnf("Target cardhost not connected: %s", cardhostUuid);
             // Send error back to controller
-            controllerSession.getBasicRemote().sendText(
+            controllerConnection.sendTextAndAwait(
                 String.format("{\"type\":\"error\",\"data\":{\"message\":\"Cardhost %s not connected\"}}", 
                     cardhostUuid)
             );
             return;
         }
         
-        if (!cardhostSession.isOpen()) {
-            LOG.warnf("Target cardhost session closed: %s", cardhostUuid);
+        if (!cardhostConnection.isOpen()) {
+            LOG.warnf("Target cardhost connection closed: %s", cardhostUuid);
             cardhosts.remove(cardhostUuid);
             return;
         }
         
-        cardhostSession.getBasicRemote().sendText(message);
+        cardhostConnection.sendTextAndAwait(message);
         LOG.debugf("Routed message from controller to cardhost %s", cardhostUuid);
     }
     
     /**
      * Route message from cardhost to controller(s)
      */
-    public void routeToControllers(String cardhostUuid, String message) throws IOException {
+    public void routeToControllers(String cardhostUuid, String message) {
         // Find all controllers targeting this cardhost
-        for (Map.Entry<Session, String> entry : controllers.entrySet()) {
+        for (Map.Entry<WebSocketConnection, String> entry : controllers.entrySet()) {
             if (cardhostUuid.equals(entry.getValue())) {
-                Session controllerSession = entry.getKey();
-                if (controllerSession.isOpen()) {
-                    controllerSession.getBasicRemote().sendText(message);
+                WebSocketConnection controllerConnection = entry.getKey();
+                if (controllerConnection.isOpen()) {
+                    controllerConnection.sendTextAndAwait(message);
                     LOG.debugf("Routed message from cardhost %s to controller", cardhostUuid);
                 } else {
-                    controllers.remove(controllerSession);
+                    controllers.remove(controllerConnection);
                 }
             }
         }
@@ -107,14 +106,14 @@ public class RoutingService {
      * Check if cardhost is connected
      */
     public boolean isCardhostConnected(String uuid) {
-        Session session = cardhosts.get(uuid);
-        return session != null && session.isOpen();
+        WebSocketConnection connection = cardhosts.get(uuid);
+        return connection != null && connection.isOpen();
     }
     
     /**
      * Get all connected cardhost UUIDs
      */
-    public Map<String, Session> getConnectedCardhosts() {
+    public Map<String, WebSocketConnection> getConnectedCardhosts() {
         return Map.copyOf(cardhosts);
     }
 }
