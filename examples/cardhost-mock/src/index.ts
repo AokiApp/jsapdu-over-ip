@@ -12,7 +12,27 @@
 
 import { SmartCardPlatformAdapter } from "@aokiapp/jsapdu-over-ip/server";
 import { MockSmartCardPlatform } from "@aokiapp/jsapdu-over-ip-examples-test-utils";
-import { randomUUID } from "crypto";
+import { RouterServerTransport, type RouterServerTransportConfig } from "./router-transport.js";
+import { randomUUID, webcrypto } from "crypto";
+
+/**
+ * Generate a simple mock key pair for testing
+ * In production cardhost, keys are persisted in config
+ */
+async function generateMockKeyPair(): Promise<{
+  publicKey: webcrypto.CryptoKey;
+  privateKey: webcrypto.CryptoKey;
+}> {
+  const keyPair = await webcrypto.subtle.generateKey(
+    {
+      name: "ECDSA",
+      namedCurve: "P-256",
+    },
+    true,
+    ["sign", "verify"]
+  );
+  return keyPair;
+}
 
 async function main() {
   console.log("=== Mock Cardhost Starting (TEST ONLY) ===");
@@ -20,18 +40,18 @@ async function main() {
   console.log("⚠️  DO NOT use in production!");
   console.log();
 
-  // For this simple mock, we'll note that full router integration
-  // would require implementing the transport layer.
-  // For now, this demonstrates the mock platform works with the adapter.
+  // Get config from environment or use defaults
+  const routerUrl = process.env.ROUTER_URL || 'ws://localhost:8080/ws/cardhost';
+  const uuid = process.env.CARDHOST_UUID || `mock-cardhost-${randomUUID()}`;
 
-  console.log("This mock cardhost demonstrates:");
-  console.log("  1. Mock platform initialization");
-  console.log("  2. Platform adapter creation");
-  console.log("  3. APDU handling via mock");
+  console.log(`Router URL: ${routerUrl}`);
+  console.log(`Cardhost UUID: ${uuid}`);
   console.log();
-  console.log("For full integration testing, see:");
-  console.log("  - examples/test-utils (integration test)");
-  console.log("  - examples/controller-cli (CLI controller)");
+
+  // Generate mock key pair
+  console.log("Generating mock key pair...");
+  const keyPair = await generateMockKeyPair();
+  console.log("✅ Mock key pair generated");
   console.log();
 
   // Initialize mock platform (test only!)
@@ -49,15 +69,48 @@ async function main() {
   });
   console.log();
 
-  console.log("✅ Mock cardhost platform ready");
+  // Create router transport
+  console.log("Creating router transport...");
+  const transportConfig: RouterServerTransportConfig = {
+    routerUrl,
+    uuid,
+    publicKey: keyPair.publicKey,
+    privateKey: keyPair.privateKey,
+  };
+  const transport = new RouterServerTransport(transportConfig);
+  console.log("✅ Router transport created");
   console.log();
-  console.log("Note: For full router integration, implement RouterServerTransport");
-  console.log("      and connect to router as shown in examples/cardhost");
+
+  // Create adapter - LIBRARY HANDLES ALL RPC
+  console.log("Creating SmartCardPlatformAdapter...");
+  const adapter = new SmartCardPlatformAdapter(platform, transport);
+  console.log("✅ Adapter created");
   console.log();
+
+  // Start adapter
+  console.log("Starting adapter...");
+  await adapter.start();
+  console.log("✅ Mock Cardhost is running - connected to router!");
+  console.log();
+  console.log("Mock cardhost is ready to receive APDU commands from CLI controller");
   console.log("Press Ctrl+C to stop");
 
-  // Keep running
-  await new Promise(() => {});
+  // Graceful shutdown
+  const shutdown = async () => {
+    console.log("\n=== Mock Cardhost Shutting Down ===");
+    try {
+      await adapter.stop();
+      await platform.release();
+      console.log("✅ Shutdown complete");
+      process.exit(0);
+    } catch (error) {
+      console.error("❌ Shutdown error:", error);
+      process.exit(1);
+    }
+  };
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
 
 main().catch(error => {
