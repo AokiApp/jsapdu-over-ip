@@ -4,8 +4,9 @@
   "description": "Browser-based controller for remote APDU operations",
   "type": "module",
   "scripts": {
-    "build": "echo 'Build not yet implemented'",
-    "dev": "echo 'Dev server not yet implemented'",
+    "build": "vite build",
+    "dev": "vite",
+    "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist"
   },
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@aokiapp/jsapdu-interface": "^0.0.2",
     "rimraf": "^5.0.10",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^5.4.11"
   }
 }

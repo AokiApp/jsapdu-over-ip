@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>jsapdu-over-ip Controller</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🎮 jsapdu Controller</h1>
+        <div class="header-info">
+          <div class="connection-status">
+            <span class="label">Status:</span>
+            <span id="connection-state" class="connection-disconnected">disconnected</span>
+          </div>
+          <div class="public-key-display">
+            <span class="label">Public Key:</span>
+            <code id="public-key">Loading...</code>
+          </div>
+        </div>
+      </header>
+
+      <div class="main-content">
+        <aside class="sidebar">
+          <section class="connection-panel">
+            <h2>Connection</h2>
+            <button id="connect-btn" class="primary-btn">Connect to Router</button>
+            <div id="status" class="status-message">Ready</div>
+          </section>
+
+          <section class="cardhost-panel">
+            <div class="panel-header">
+              <h2>Cardhosts</h2>
+              <button id="refresh-btn" class="icon-btn" title="Refresh">🔄</button>
+            </div>
+            <div id="cardhost-list" class="cardhost-list">
+              <div class="no-cardhosts">Not connected</div>
+            </div>
+          </section>
+        </aside>
+
+        <main class="work-area">
+          <section class="apdu-panel">
+            <h2>APDU Commands</h2>
+            
+            <div class="input-group">
+              <label for="apdu-input">Command (hex):</label>
+              <input
+                type="text"
+                id="apdu-input"
+                placeholder="00 A4 04 00 0A A0 00 00 00 01 02 03 04 05 06"
+                class="apdu-input"
+              />
+              <div class="button-group">
+                <button id="send-apdu-btn" class="primary-btn">Send APDU</button>
+                <button id="device-info-btn" class="secondary-btn">Get Device Info</button>
+              </div>
+            </div>
+
+            <div class="quick-commands">
+              <h3>Quick Commands</h3>
+              <div class="quick-cmd-grid">
+                <button class="quick-cmd" data-apdu="00 A4 04 00 00">SELECT (empty)</button>
+                <button class="quick-cmd" data-apdu="00 B0 00 00 00">READ BINARY</button>
+                <button class="quick-cmd" data-apdu="00 CA 9F 7F 00">GET DATA</button>
+                <button class="quick-cmd" data-apdu="00 C0 00 00 00">GET RESPONSE</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="log-panel">
+            <div class="panel-header">
+              <h2>Communication Log</h2>
+              <button id="clear-log-btn" class="icon-btn" title="Clear Log">🗑️</button>
+            </div>
+            <div id="log" class="log-container"></div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script type="module" src="/src/index.ts"></script>
+    <script>
+      // Add quick command handlers
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('quick-cmd')) {
+          const apdu = e.target.getAttribute('data-apdu');
+          const input = document.getElementById('apdu-input');
+          if (input && apdu) {
+            input.value = apdu;
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
