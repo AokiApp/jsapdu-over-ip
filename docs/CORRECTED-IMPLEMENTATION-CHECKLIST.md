@@ -22,35 +22,36 @@ The cardhost and controller were reimplementing RPC instead of using the jsapdu-
 4. ❌ NOT create custom RPC types
 5. ❌ NOT manually handle APDU serialization
 
-## Files to DELETE
+## Files DELETED ✅
 
-### From Cardhost:
-- ❌ `src/cardhost-service.ts` - WRONG, reimplements RPC
-- ❌ `src/router-client.ts` - WRONG, should be ServerTransport
-- Parts of `src/index.ts` - Must use adapter
+### From Cardhost (DELETED):
+- ✅ `src/cardhost-service.ts` - DELETED (was wrong, reimplemented RPC)
+- ✅ `src/router-client.ts` - DELETED (was wrong, should be ServerTransport)
+- ✅ `src/index.ts` - DELETED (was wrong, must use adapter)
+- ✅ `src/mock-platform.ts` - DELETED by user
 
-### From Controller:
-- ❌ `src/websocket-client.ts` - WRONG, should be ClientTransport
-- ❌ `src/api-client.ts` - Partially OK (REST API is separate)
-- Parts of `src/app.ts` - Must use RemoteSmartCardPlatform
+### From Controller (DELETED):
+- ✅ `src/websocket-client.ts` - DELETED (was wrong, should be ClientTransport)
+- ✅ `src/app.ts` - DELETED (was wrong, must use RemoteSmartCardPlatform)
+- ✅ `src/index.ts` - DELETED (was wrong)
 
-## Correct Implementation Checklist
+### From Shared (DELETED):
+- ✅ `src/protocol.ts` - DELETED by user
 
-### Phase 1: Fix Shared Types ✅
-- [x] Keep protocol.ts but note it's for router messages, NOT RPC
-- [x] RPC types come from jsapdu-over-ip library
+## Current State (After Cleanup)
 
-### Phase 2: Fix Cardhost 🔄
+### Phase 1: Shared Package
+- ✅ Minimal shared package remains
+- ✅ RPC types will come from jsapdu-over-ip library
 
-#### Keep These Files:
-- [x] `src/config.ts` - Configuration management (OK)
-- [x] `src/crypto.ts` - Authentication helpers (OK)
-- [x] `src/mock-platform.ts` - Mock SmartCardPlatform implementation (OK)
-- [x] `src/monitor/` - Monitoring UI (OK, separate concern)
+### Phase 2: Cardhost - Files Remaining
 
-#### DELETE and Replace:
-- [ ] DELETE `src/cardhost-service.ts` completely
-- [ ] DELETE `src/router-client.ts` completely
+**Kept Files (Utilities Only):**
+- ✅ `src/config.ts` - Configuration management (OK to keep)
+- ✅ `src/crypto.ts` - Authentication helpers (OK to keep)
+- ✅ `src/monitor/index.ts` - Monitoring UI (OK to keep, separate concern)
+
+**ALL implementation files DELETED - ready for clean implementation**
 
 #### CREATE New Files:
 - [ ] `src/router-transport.ts` - Implements ServerTransport
@@ -83,17 +84,19 @@ The cardhost and controller were reimplementing RPC instead of using the jsapdu-
 - [ ] Create `RouterServerTransport`
 - [ ] Create adapter with actual platform + transport
 - [ ] Start adapter - that's it!
+- [ ] **NOTE**: MockPlatform was deleted - will need to create new one or use real PC/SC
 
 ```typescript
 import { SmartCardPlatformAdapter } from '@aokiapp/jsapdu-over-ip/server';
-import { MockPlatform } from './mock-platform.js';
+// Note: MockPlatform was deleted, need to recreate or use PcscPlatform
 import { RouterServerTransport } from './router-transport.js';
 
 async function main() {
   const config = await loadConfig();
   
-  // Actual platform
-  const platform = new MockPlatform(); // or PcscPlatform
+  // Actual platform - NEED TO IMPLEMENT
+  // const platform = new MockPlatform(); // DELETED - recreate if needed
+  // const platform = new PcscPlatform(); // or use real implementation
   
   // Custom transport
   const transport = new RouterServerTransport(config);
@@ -106,17 +109,16 @@ async function main() {
 }
 ```
 
-### Phase 3: Fix Controller 🔄
+### Phase 3: Controller - Files Remaining
 
-#### Keep These Files:
-- [x] `src/crypto.ts` - Authentication helpers (OK)
-- [x] `public/index.html` - UI (OK)
-- [x] `public/styles.css` - Styles (OK)
-- [x] `vite.config.ts` - Build config (OK)
+**Kept Files (Utilities Only):**
+- ✅ `src/crypto.ts` - Authentication helpers (OK to keep)
+- ✅ `src/api-client.ts` - REST API client (OK to keep)
+- ✅ `public/index.html` - UI (OK to keep)
+- ✅ `public/styles.css` - Styles (OK to keep)
+- ✅ `vite.config.ts` - Build config (OK to keep)
 
-#### DELETE and Replace:
-- [ ] DELETE `src/websocket-client.ts` completely
-- [ ] Rewrite `src/api-client.ts` (REST API part OK, but separate from platform)
+**ALL implementation files DELETED - ready for clean implementation**
 
 #### CREATE New Files:
 - [ ] `src/router-transport.ts` - Implements ClientTransport

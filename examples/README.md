@@ -2,102 +2,56 @@
 
 This directory contains example implementations demonstrating how to use jsapdu-over-ip for remote smart card access.
 
-## Components
+## ⚠️ Current Status
 
-### 1. Cardhost (TypeScript/Node.js)
+**This examples directory is in FOUNDATION STATE ONLY.**
 
-Service that hosts physical card readers and executes APDU commands on behalf of remote controllers.
+- ✅ Architecture documentation complete
+- ✅ Package structure created
+- ✅ Utility files preserved (config, crypto, UI)
+- ❌ **NO WORKING IMPLEMENTATION YET**
+- ❌ Incorrect RPC reimplementation was deleted
+- ⏳ Next session will implement using library correctly
 
-**Location**: `cardhost/`
+## What Exists Now
 
-**Features**:
-- UUID-based addressing
-- Public-key cryptography authentication (ECDSA P-256)
-- WebSocket connection to router
-- Integrated monitoring web UI
-- Mock platform for testing without hardware
-- Automatic reconnection
+### Cardhost (`cardhost/`)
+**Files present:**
+- `src/config.ts` - Configuration utilities
+- `src/crypto.ts` - Authentication helpers
+- `src/monitor/index.ts` - Monitoring UI (standalone)
+- `package.json`, `tsconfig.json` - Build config
 
-**Quick Start**:
-```bash
-cd cardhost
-npm install
-npm run dev
+**Missing (to be implemented):**
+- `src/index.ts` - Main entry point using SmartCardPlatformAdapter
+- `src/router-transport.ts` - ServerTransport implementation
+- Mock or real SmartCardPlatform implementation
 
-# With custom router URL
-ROUTER_URL=ws://router.example.com/ws/cardhost npm run dev
+### Controller (`controller/`)
+**Files present:**
+- `src/crypto.ts` - Authentication helpers
+- `src/api-client.ts` - REST API client
+- `public/index.html` - UI template
+- `public/styles.css` - Styles
+- `vite.config.ts` - Build config
+- `package.json`, `tsconfig.json` - Build config
 
-# Disable monitor
-MONITOR_ENABLED=false npm run dev
-```
+**Missing (to be implemented):**
+- `src/index.ts` - Main entry point
+- `src/app.ts` - Application logic using RemoteSmartCardPlatform
+- `src/router-transport.ts` - ClientTransport implementation
 
-**Monitor**: Access at http://localhost:3001 (default)
+### Router (`router/`)
+**Not started** - Java/Quarkus message broker
 
-### 2. Controller (TypeScript/Browser)
+### Shared (`shared/`)
+**Minimal package** - Will use RPC types from jsapdu-over-ip library
 
-Browser-based frontend for sending APDU commands to remote card readers.
+## Architecture (Planned)
 
-**Location**: `controller/`
+See `docs/examples-architecture.md` for detailed architecture using jsapdu-over-ip library correctly.
 
-**Features**:
-- Interactive APDU command builder
-- Cardhost discovery and selection
-- Public-key cryptography (Web Crypto API)
-- Real-time communication log
-- Quick command buttons
-- Dark theme UI
-
-**Quick Start**:
-```bash
-cd controller
-npm install
-npm run dev
-```
-
-Then open http://localhost:3000 in your browser.
-
-### 3. Router (Java/Quarkus)
-
-Server that connects controllers with cardhosts over the internet.
-
-**Location**: `router/`
-
-**Status**: 🚧 To be implemented in next session
-
-**Features** (planned):
-- REST API for cardhost discovery
-- WebSocket endpoints for real-time communication
-- Public-key authentication
-- PostgreSQL for state management
-- Health checks and metrics
-
-### 4. Shared (TypeScript)
-
-Common types and utilities used by TypeScript components.
-
-**Location**: `shared/`
-
-**Contents**:
-- WebSocket protocol message types
-- Shared interfaces (CardhostInfo, etc.)
-- Type guards and helpers
-
-## Architecture
-
-```
-┌─────────────┐                    ┌────────────┐                    ┌──────────────┐
-│ Controller  │◄──────────────────►│   Router   │◄──────────────────►│   Cardhost   │
-│  (Browser)  │    WebSocket       │  (Server)  │    WebSocket       │   (Node.js)  │
-└─────────────┘                    └────────────┘                    └──────────────┘
-                                           │                                  │
-                                           │                                  │
-                                   ┌───────▼────────┐                ┌────────▼─────┐
-                                   │   PostgreSQL   │                │  Card Reader │
-                                   │   (Registry)   │                │  (PC/SC)     │
-                                   └────────────────┘                └──────────────┘
-```
-
-**Communication Flow**:
+**Key principle**: Use `SmartCardPlatformAdapter` and `RemoteSmartCardPlatform` from the library, NOT custom RPC implementation.
 1. Cardhost connects to router (outbound), registers with UUID + public key
 2. Controller connects to router (outbound), authenticates with public key
 3. Controller discovers available cardhosts via REST API
@@ -336,3 +290,39 @@ For more information, see:
 - `docs/controller.md` - Controller documentation
 - `docs/router.md` - Router documentation
 - `docs/websocket-protocol.md` - Protocol specification
+
+## Next Steps
+
+**For next session implementer:**
+
+1. **Read architecture docs first**: `docs/examples-architecture.md`, `docs/cardhost.md`, `docs/controller.md`
+2. **Understand library usage**: Study `/src/client/` and `/src/server/` in main repo
+3. **Implement RouterServerTransport**: Custom transport for cardhost→router
+4. **Implement RouterClientTransport**: Custom transport for controller→router
+5. **Create cardhost index.ts**: Use SmartCardPlatformAdapter from library
+6. **Create controller app.ts**: Use RemoteSmartCardPlatform from library
+7. **Implement router**: Java/Quarkus message broker
+8. **Test integration**: End-to-end with mock or real cards
+
+**Estimated time**: 4-5 hours
+
+## Documentation
+
+- **`docs/examples-architecture.md`** - Complete architecture with library usage
+- **`docs/CORRECTED-IMPLEMENTATION-CHECKLIST.md`** - Implementation plan
+- **`docs/cardhost.md`** - Cardhost component details
+- **`docs/controller.md`** - Controller component details
+- **`docs/job-notes/20251207-session2-implementation.md`** - Session history (describes WRONG implementation that was deleted)
+
+## Important Notes
+
+1. **DO NOT reimplement RPC** - use library's SmartCardPlatformAdapter and RemoteSmartCardPlatform
+2. **Implement transports only** - ServerTransport and ClientTransport for router communication
+3. **Use jsapdu-interface types** - CommandApdu, ResponseApdu, SmartCardPlatform
+4. **Router is message broker** - does NOT parse jsapdu methods
+
+## References
+
+- Main library: `@aokiapp/jsapdu-over-ip`
+- Interface: `@aokiapp/jsapdu-interface`
+- Reference repos in `/tmp` (clone if needed): quarkus-crud, jsapdu, readthecard
