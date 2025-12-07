@@ -18,8 +18,8 @@
   "author": "AokiApp",
   "license": "ANAL-Tight",
   "dependencies": {
-    "@aokiapp/jsapdu-over-ip": "workspace:*",
-    "@aokiapp/jsapdu-over-ip-examples-shared": "workspace:*",
+    "@aokiapp/jsapdu-over-ip": "file:../../aokiapp-jsapdu-over-ip-0.0.1.tgz",
+    "@aokiapp/jsapdu-over-ip-examples-shared": "file:../shared/aokiapp-jsapdu-over-ip-examples-shared-0.1.0.tgz",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
