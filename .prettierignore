@@ -1,0 +1,20 @@
+# Build artifacts
+dist/
+**/dist/
+
+# Dependencies
+node_modules/
+
+# Generated code
+**/generated/
+
+# Package lock files
+package-lock.json
+
+# Archives
+*.tgz
+
+# Reference repo and local artifacts
+.private.local/
+local-packages/
+.turbo/

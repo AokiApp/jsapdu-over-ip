@@ -78,15 +78,21 @@ npm view @aokiapp/jsapdu-interface@0.0.2 version
   }
 }
 ```
+
 ## 使用方法
 
 ### クライアント側
 
 ```typescript
-import { RemoteSmartCardPlatform, FetchClientTransport } from '@aokiapp/jsapdu-over-ip/client';
+import {
+  RemoteSmartCardPlatform,
+  FetchClientTransport,
+} from "@aokiapp/jsapdu-over-ip/client";
 
 // トランスポート層を初期化
-const transport = new FetchClientTransport('http://localhost:3000/api/jsapdu/rpc');
+const transport = new FetchClientTransport(
+  "http://localhost:3000/api/jsapdu/rpc",
+);
 
 // リモートプラットフォームを作成
 const platform = new RemoteSmartCardPlatform(transport);
@@ -99,8 +105,8 @@ const devices = await platform.getDeviceInfo();
 ### サーバー側
 
 ```typescript
-import { SmartCardPlatformAdapter } from '@aokiapp/jsapdu-over-ip/server';
-import { YourActualPlatform } from '@aokiapp/jsapdu-pcsc'; // or other implementation
+import { SmartCardPlatformAdapter } from "@aokiapp/jsapdu-over-ip/server";
+import { YourActualPlatform } from "@aokiapp/jsapdu-pcsc"; // or other implementation
 
 // 実際のプラットフォーム実装をラップ
 const actualPlatform = new YourActualPlatform();
@@ -165,3 +171,72 @@ MIT
 
 - [jsapdu](https://github.com/AokiApp/jsapdu) - 親プロジェクト
 - [@aokiapp/jsapdu-interface](https://github.com/AokiApp/jsapdu) - インターフェース定義
+
+## 開発ツールセット
+
+- Prettier: コード整形。設定は [.prettierrc](.prettierrc)、除外は [.prettierignore](.prettierignore)。
+- ESLint (Flat Config): 静的解析。設定は [eslint.config.mjs](eslint.config.mjs) で TypeScript 推奨設定と Prettier 連携を有効化。
+- Changesets: バージョニングとリリース管理。設定は [.changeset/config.json](.changeset/config.json)。
+- Turbo: タスクパイプライン。設定は [turbo.json](turbo.json)（`build`, `typecheck`, `lint`, `format`, `clean`）。
+
+## スクリプト一覧
+
+```bash
+# ビルド関連
+npm run build          # tsc でビルド
+npm run typecheck      # 型チェックのみ
+npm run clean          # dist を削除
+
+# 品質管理
+npm run lint           # ESLint 実行（Flat Config）
+npm run format         # Prettier で整形
+npm run format:check   # 整形チェック
+
+# リリース管理
+npm run changeset      # 変更内容の記述（Changesets）
+npm run version        # バージョンの更新（Changesets）
+npm run release        # Turbo で build/lint 実行後に Changesets で公開
+
+# パッケージング
+npm run pack:tgz       # .tgz を生成
+```
+
+## Turbo パイプライン
+
+[Turbo](https://turbo.build/) により、以下のタスクが定義されています（[turbo.json](turbo.json) を参照）:
+
+- `build`: `dist/**` を成果物としてキャッシュ。`src/**`, `tsconfig.json`, `package.json` を入力とする。
+- `typecheck`: 型チェックのみ。入力は `src/**`, `tsconfig.json`, `package.json`。
+- `lint`: 出力なしのチェックタスク。
+- `format`: 出力なしの整形タスク。
+- `clean`: キャッシュ無効化のクリーンタスク。
+
+## GitHub Packages 用 .npmrc
+
+GitHub Packages を使用するために、プロジェクトルートの [.npmrc](.npmrc) を以下のように設定してください（既に反映済み）:
+
+```ini
+@aokiapp:registry=https://npm.pkg.github.com
+always-auth=true
+registry=https://registry.npmjs.org/
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+```
+
+Windows の場合:
+
+```bat
+setx NODE_AUTH_TOKEN "YOUR_GITHUB_TOKEN_WITH_packages:read"
+npm install
+```
+
+macOS/Linux の場合:
+
+```bash
+export NODE_AUTH_TOKEN="YOUR_GITHUB_TOKEN_WITH_packages:read"
+npm install
+```
+
+## Lint の既知事項
+
+現在のコードベースでは `@typescript-eslint` の厳格ルールにより `any` の使用や不要なアサーション等がエラーになります。今回は「導入」を優先し、コード修正は保留としています（必要に応じてルール緩和や型付けの改善を後続タスクで対応可能です）。
+
