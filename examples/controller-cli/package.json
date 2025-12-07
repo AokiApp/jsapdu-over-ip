@@ -1,0 +1,34 @@
+{
+  "name": "@aokiapp/jsapdu-over-ip-examples-controller-cli",
+  "version": "0.1.0",
+  "description": "CLI controller for jsapdu-over-ip testing and AI interaction",
+  "type": "module",
+  "bin": {
+    "controller-cli": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "jsapdu",
+    "controller",
+    "cli"
+  ],
+  "author": "AokiApp",
+  "license": "ANAL-Tight",
+  "dependencies": {
+    "@aokiapp/jsapdu-over-ip": "file:../..",
+    "@aokiapp/jsapdu-over-ip-examples-shared": "file:../shared",
+    "@aokiapp/jsapdu-interface": "file:/tmp/jsapdu-interface.tgz",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/ws": "^8.5.13",
+    "rimraf": "^5.0.10",
+    "typescript": "^5.9.3"
+  }
+}
