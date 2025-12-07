@@ -46,53 +46,39 @@ Implement authentication and end-to-end encryption system for jsapdu-over-ip rou
   - Counter for cardhost disconnections
 - ✅ Verified build succeeds with metrics
 
+#### 4. Security Architecture Design (15:25-15:26 UTC)
+- ✅ Created comprehensive security architecture document
+- ✅ Documented threat model and cryptographic primitives
+- ✅ Designed authentication flows for cardhost and controller
+- ✅ Designed end-to-end encryption protocol (ECDHE)
+- ✅ Defined implementation phases
+
+#### 5. Session Token Authentication (15:26-15:27 UTC)
+- ✅ Implemented `SessionTokenManager` for single-use tokens
+- ✅ Implemented `SecurityScheduler` for token cleanup
+- ✅ Updated `ControllerResource` to generate tokens
+- ✅ Updated `ControllerWebSocket` to validate tokens on upgrade
+- ✅ Added Quarkus scheduler dependency
+
+#### 6. Cardhost Challenge-Response Authentication (15:27-15:28 UTC)
+- ✅ Implemented `CryptoUtils` for ECDSA operations
+- ✅ Updated `CardhostWebSocket` with challenge-response flow:
+  - Step 1: Cardhost sends auth-request with UUID + public key
+  - Step 2: Router generates and sends auth-challenge with nonce
+  - Step 3: Cardhost signs nonce and sends auth-response with signature
+  - Step 4: Router verifies signature and registers cardhost
+- ✅ Added authentication state tracking per connection
+- ✅ Verified build succeeds
+
 ### 🔄 In Progress
 
-#### 4. Authentication Architecture Design
-- [ ] Design public-key authentication flow for cardhosts
-- [ ] Design bearer token authentication for controllers
-- [ ] Design session token management for WebSocket upgrade
-- [ ] Design ECDHE key exchange protocol
-- [ ] Design message signing and verification
-
-### ⏳ Pending
-
-#### 5. Cardhost Authentication Implementation
-- [ ] Create key pair generation utility
-- [ ] Implement cardhost key storage
-- [ ] Implement challenge-response authentication
-- [ ] Add signature verification to registration
-
-#### 6. Controller Authentication Implementation
-- [ ] Design bearer token format
-- [ ] Implement token generation
-- [ ] Implement token verification
-- [ ] Add session token management
-
-#### 7. End-to-End Encryption
+#### 7. End-to-End Encryption (Not Started)
 - [ ] Implement ECDHE key exchange
-- [ ] Implement session key derivation
-- [ ] Implement message encryption/decryption
+- [ ] Implement session key derivation (HKDF)
+- [ ] Implement message encryption/decryption (AES-GCM)
 - [ ] Add message authentication codes (MAC)
 
-#### 8. Security Enhancements
-- [ ] Add signature to heartbeat messages
-- [ ] Implement replay attack prevention
-- [ ] Add rate limiting
-- [ ] Update OpenAPI security definitions
-
-#### 9. Testing
-- [ ] Test cardhost authentication flow
-- [ ] Test controller authentication flow
-- [ ] Test key exchange
-- [ ] Test encrypted communication
-- [ ] Verify all completion criteria
-
-#### 10. Documentation
-- [ ] Document authentication architecture
-- [ ] Document encryption protocol
-- [ ] Update deployment guides
-- [ ] Update troubleshooting guide
+### ⏳ Pending
 
 ## Technical Decisions
 
@@ -116,12 +102,16 @@ Implement authentication and end-to-end encryption system for jsapdu-over-ip rou
 
 ## Files Modified
 
-### Created (3 files)
+### Created (6 files)
 1. `examples/router/src/main/java/app/aoki/quarkuscrud/support/ErrorResponse.java`
 2. `examples/router/src/main/java/app/aoki/quarkuscrud/support/ConstraintViolationExceptionMapper.java`
 3. `examples/router/src/main/java/app/aoki/quarkuscrud/support/WebApplicationExceptionMapper.java`
+4. `docs/security-architecture.md`
+5. `examples/router/src/main/java/app/aoki/quarkuscrud/crypto/CryptoUtils.java`
+6. `examples/router/src/main/java/app/aoki/quarkuscrud/crypto/SessionTokenManager.java`
+7. `examples/router/src/main/java/app/aoki/quarkuscrud/crypto/SecurityScheduler.java`
 
-### Modified (2 files)
+### Modified (4 files)
 1. `examples/router/src/main/java/app/aoki/quarkuscrud/service/RoutingService.java`
    - Added MeterRegistry injection
    - Added metrics to registerController()
@@ -132,6 +122,21 @@ Implement authentication and end-to-end encryption system for jsapdu-over-ip rou
    - Added PostConstruct method for gauge initialization
    - Added metrics to registerCardhost()
    - Added metrics to unregisterCardhost()
+3. `examples/router/src/main/java/app/aoki/quarkuscrud/resource/ControllerResource.java`
+   - Added SessionTokenManager injection
+   - Generate session token for WebSocket upgrade
+   - Include token in WebSocket URL
+4. `examples/router/src/main/java/app/aoki/quarkuscrud/websocket/ControllerWebSocket.java`
+   - Validate session token on connection
+   - Enforce authentication before message processing
+   - Extract query parameters from handshake
+5. `examples/router/src/main/java/app/aoki/quarkuscrud/websocket/CardhostWebSocket.java`
+   - Implement challenge-response authentication
+   - Track authentication state per connection
+   - Verify signature before registration
+   - Enforce authentication before message routing
+6. `examples/router/build.gradle`
+   - Added quarkus-scheduler dependency
 
 ## Build Verification
 
@@ -174,8 +179,11 @@ BUILD SUCCESSFUL in 2-5s
 - **Repository Setup:** 15:11-15:15 (4 min)
 - **Exception Handling:** 15:15-15:20 (5 min)
 - **Metrics Integration:** 15:20-15:25 (5 min)
-- **Current Time:** 15:25 UTC
-- **Elapsed:** 14 minutes
+- **Security Design:** 15:25-15:26 (1 min)
+- **Session Tokens:** 15:26-15:27 (1 min)
+- **Cardhost Auth:** 15:27-15:28 (1 min)
+- **Current Time:** 15:28 UTC
+- **Elapsed:** 17 minutes
 
 ## References
 

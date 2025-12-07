@@ -1,5 +1,6 @@
 package app.aoki.quarkuscrud.websocket;
 
+import app.aoki.quarkuscrud.crypto.CryptoUtils;
 import app.aoki.quarkuscrud.model.CardhostInfo;
 import app.aoki.quarkuscrud.service.CardhostService;
 import app.aoki.quarkuscrud.usecase.RegisterCardhostUseCase;
@@ -37,6 +38,9 @@ public class CardhostWebSocket {
     
     // Instance variable is safe - one instance per connection in WebSockets Next
     private String cardhostUuid;
+    private String pendingPublicKey;
+    private String challengeNonce;
+    private boolean authenticated = false;
     
     @OnOpen
     public void onOpen(WebSocketConnection connection) {
@@ -48,17 +52,24 @@ public class CardhostWebSocket {
         try {
             RpcMessage rpcMessage = objectMapper.readValue(message, RpcMessage.class);
             
-            // Handle authentication message
-            if ("auth-success".equals(rpcMessage.getType())) {
-                handleAuthentication(connection, rpcMessage);
+            // Handle authentication request (step 1)
+            if ("auth-request".equals(rpcMessage.getType())) {
+                handleAuthRequest(connection, rpcMessage);
                 return;
             }
             
-            // Route responses/events to controllers
-            if (cardhostUuid != null) {
+            // Handle authentication response (step 3)
+            if ("auth-response".equals(rpcMessage.getType())) {
+                handleAuthResponse(connection, rpcMessage);
+                return;
+            }
+            
+            // Route responses/events to controllers (only if authenticated)
+            if (authenticated && cardhostUuid != null) {
                 routeRpcMessageUseCase.routeToControllers(cardhostUuid, message);
             } else {
                 LOG.warn("Received message from unauthenticated cardhost");
+                sendAuthError(connection, "Not authenticated");
             }
             
         } catch (Exception e) {
@@ -74,34 +85,124 @@ public class CardhostWebSocket {
         LOG.infof("Cardhost connection closed: %s", connection.id());
     }
     
-    private void handleAuthentication(WebSocketConnection connection, RpcMessage authMessage) {
+    /**
+     * Handle authentication request (step 1 of challenge-response).
+     * Cardhost sends UUID and public key, router responds with challenge.
+     */
+    private void handleAuthRequest(WebSocketConnection connection, RpcMessage authMessage) {
         try {
-            if (authMessage.getData() == null || !authMessage.getData().has("uuid")) {
-                LOG.warn("Authentication message missing UUID");
+            if (authMessage.getData() == null || 
+                !authMessage.getData().has("uuid") || 
+                !authMessage.getData().has("publicKey")) {
+                LOG.warn("Authentication request missing UUID or publicKey");
+                sendAuthError(connection, "Missing UUID or publicKey");
                 return;
             }
             
             String uuid = authMessage.getData().get("uuid").asText();
-            String publicKey = authMessage.getData().has("publicKey") 
-                ? authMessage.getData().get("publicKey").asText() 
-                : "";
+            String publicKey = authMessage.getData().get("publicKey").asText();
             
-            // Execute use case
-            CardhostInfo info = registerCardhostUseCase.execute(uuid, publicKey, connection);
+            // Store for verification later
             cardhostUuid = uuid;
+            pendingPublicKey = publicKey;
             
-            // Send confirmation (WebSocket-specific response)
+            // Generate challenge nonce
+            challengeNonce = CryptoUtils.generateNonce(32);
+            
+            // Send challenge
+            RpcMessage challengeMsg = new RpcMessage();
+            challengeMsg.setType("auth-challenge");
+            var data = objectMapper.createObjectNode();
+            data.put("nonce", challengeNonce);
+            challengeMsg.setData(data);
+            
+            connection.sendTextAndAwait(objectMapper.writeValueAsString(challengeMsg));
+            LOG.debugf("Sent authentication challenge to cardhost: %s", uuid);
+            
+        } catch (Exception e) {
+            LOG.errorf(e, "Error handling auth request");
+            sendAuthError(connection, "Internal error");
+        }
+    }
+    
+    /**
+     * Handle authentication response (step 3 of challenge-response).
+     * Cardhost sends signature of nonce, router verifies with public key.
+     */
+    private void handleAuthResponse(WebSocketConnection connection, RpcMessage authMessage) {
+        try {
+            if (authMessage.getData() == null || !authMessage.getData().has("signature")) {
+                LOG.warn("Authentication response missing signature");
+                sendAuthError(connection, "Missing signature");
+                return;
+            }
+            
+            if (cardhostUuid == null || pendingPublicKey == null || challengeNonce == null) {
+                LOG.warn("No pending authentication for this connection");
+                sendAuthError(connection, "No pending authentication");
+                return;
+            }
+            
+            String signature = authMessage.getData().get("signature").asText();
+            
+            // Verify signature
+            boolean valid = CryptoUtils.verifySignature(
+                pendingPublicKey, 
+                challengeNonce.getBytes(), 
+                signature
+            );
+            
+            if (!valid) {
+                LOG.warnf("Invalid signature from cardhost: %s", cardhostUuid);
+                sendAuthError(connection, "Invalid signature");
+                cardhostUuid = null;
+                pendingPublicKey = null;
+                challengeNonce = null;
+                return;
+            }
+            
+            // Authentication successful - register cardhost
+            CardhostInfo info = registerCardhostUseCase.execute(
+                cardhostUuid, 
+                pendingPublicKey, 
+                connection
+            );
+            authenticated = true;
+            
+            // Clear challenge data
+            challengeNonce = null;
+            pendingPublicKey = null;
+            
+            // Send success confirmation
             RpcMessage confirmationMsg = new RpcMessage();
             confirmationMsg.setType("registered");
             var data = objectMapper.createObjectNode();
-            data.put("uuid", uuid);
+            data.put("uuid", cardhostUuid);
             confirmationMsg.setData(data);
             
             connection.sendTextAndAwait(objectMapper.writeValueAsString(confirmationMsg));
-            LOG.infof("Cardhost authenticated: %s", uuid);
+            LOG.infof("Cardhost authenticated successfully: %s", cardhostUuid);
             
         } catch (Exception e) {
-            LOG.errorf(e, "Error handling cardhost authentication");
+            LOG.errorf(e, "Error handling auth response");
+            sendAuthError(connection, "Internal error");
+        }
+    }
+    
+    /**
+     * Send authentication error to cardhost.
+     */
+    private void sendAuthError(WebSocketConnection connection, String errorMessage) {
+        try {
+            RpcMessage errorMsg = new RpcMessage();
+            errorMsg.setType("auth-failed");
+            var data = objectMapper.createObjectNode();
+            data.put("message", errorMessage);
+            errorMsg.setData(data);
+            
+            connection.sendTextAndAwait(objectMapper.writeValueAsString(errorMsg));
+        } catch (Exception e) {
+            LOG.errorf(e, "Failed to send auth error message");
         }
     }
 }
