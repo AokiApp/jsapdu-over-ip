@@ -41,11 +41,15 @@ public class CardhostWebSocket {
             
             // Handle authentication message
             if ("auth-success".equals(rpcMessage.getType())) {
-                // Extract UUID from auth success message
+                // Extract UUID and public key from auth success message
                 // Simplified authentication - in production, verify signatures
                 if (rpcMessage.getData() != null && rpcMessage.getData().has("uuid")) {
                     cardhostUuid = rpcMessage.getData().get("uuid").asText();
-                    routingService.registerCardhost(cardhostUuid, connection);
+                    String publicKey = rpcMessage.getData().has("publicKey") 
+                        ? rpcMessage.getData().get("publicKey").asText() 
+                        : "";
+                    
+                    routingService.registerCardhost(cardhostUuid, connection, publicKey);
                     
                     // Send confirmation using ObjectMapper to prevent JSON injection
                     RpcMessage confirmationMsg = new RpcMessage();

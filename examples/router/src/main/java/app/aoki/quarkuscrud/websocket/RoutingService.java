@@ -1,5 +1,6 @@
 package app.aoki.quarkuscrud.websocket;
 
+import app.aoki.quarkuscrud.model.CardhostInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.websockets.next.WebSocketConnection;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -23,14 +24,23 @@ public class RoutingService {
     // Cardhost connections: UUID -> Connection
     private final Map<String, WebSocketConnection> cardhosts = new ConcurrentHashMap<>();
     
+    // Cardhost metadata: UUID -> CardhostInfo
+    private final Map<String, CardhostInfo> cardhostInfoMap = new ConcurrentHashMap<>();
+    
     // Controller connections: Connection -> target cardhost UUID
     private final Map<WebSocketConnection, String> controllers = new ConcurrentHashMap<>();
     
     /**
      * Register a cardhost connection
      */
-    public void registerCardhost(String uuid, WebSocketConnection connection) {
+    public void registerCardhost(String uuid, WebSocketConnection connection, String publicKey) {
         cardhosts.put(uuid, connection);
+        
+        // Create or update cardhost info
+        CardhostInfo info = cardhostInfoMap.computeIfAbsent(uuid, k -> new CardhostInfo(uuid, publicKey));
+        info.setStatus("connected");
+        info.updateHeartbeat();
+        
         LOG.infof("Cardhost registered: %s", uuid);
     }
     
@@ -39,7 +49,28 @@ public class RoutingService {
      */
     public void unregisterCardhost(String uuid) {
         cardhosts.remove(uuid);
+        
+        // Update status but keep info for history
+        CardhostInfo info = cardhostInfoMap.get(uuid);
+        if (info != null) {
+            info.setStatus("disconnected");
+        }
+        
         LOG.infof("Cardhost unregistered: %s", uuid);
+    }
+    
+    /**
+     * Get cardhost info by UUID
+     */
+    public CardhostInfo getCardhostInfo(String uuid) {
+        return cardhostInfoMap.get(uuid);
+    }
+    
+    /**
+     * Get all cardhost info (connected and recently disconnected)
+     */
+    public Map<String, CardhostInfo> getAllCardhostInfo() {
+        return Map.copyOf(cardhostInfoMap);
     }
     
     /**
