@@ -1,0 +1,31 @@
+{
+  "name": "@aokiapp/jsapdu-over-ip-examples-test-utils",
+  "version": "0.1.0",
+  "description": "Testing utilities for jsapdu-over-ip examples",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test:unit": "node dist/integration-test.js",
+    "test:e2e": "node dist/e2e-test.js",
+    "test": "echo 'Use test:unit for mock platform unit test, or test:e2e for full system E2E test'",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "jsapdu",
+    "test",
+    "mock"
+  ],
+  "author": "AokiApp",
+  "license": "ANAL-Tight",
+  "dependencies": {
+    "@aokiapp/jsapdu-interface": "file:/tmp/jsapdu-interface.tgz",
+    "@aokiapp/jsapdu-over-ip": "file:../.."
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.10",
+    "typescript": "^5.9.3"
+  }
+}
