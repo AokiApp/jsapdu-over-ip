@@ -23,7 +23,7 @@ public class ControllerWebSocket {
     @Inject
     ObjectMapper objectMapper;
     
-    private String targetCardhostUuid;
+    private volatile String targetCardhostUuid;
     
     @OnOpen
     public void onOpen(WebSocketConnection connection) {

@@ -89,17 +89,20 @@ public class RoutingService {
      */
     public void routeToControllers(String cardhostUuid, String message) {
         // Find all controllers targeting this cardhost
-        for (Map.Entry<WebSocketConnection, String> entry : controllers.entrySet()) {
+        // Use iterator to safely remove closed connections during iteration
+        controllers.entrySet().removeIf(entry -> {
             if (cardhostUuid.equals(entry.getValue())) {
                 WebSocketConnection controllerConnection = entry.getKey();
                 if (controllerConnection.isOpen()) {
                     controllerConnection.sendTextAndAwait(message);
                     LOG.debugf("Routed message from cardhost %s to controller", cardhostUuid);
+                    return false; // Keep in map
                 } else {
-                    controllers.remove(controllerConnection);
+                    return true; // Remove from map
                 }
             }
-        }
+            return false; // Keep in map
+        });
     }
     
     /**
