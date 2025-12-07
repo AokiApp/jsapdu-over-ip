@@ -16,6 +16,8 @@ jobs:
   build-typescript:
     name: Build TypeScript Components
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: examples
@@ -49,6 +51,8 @@ jobs:
   build-router:
     name: Build Router (Quarkus)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: examples/router
