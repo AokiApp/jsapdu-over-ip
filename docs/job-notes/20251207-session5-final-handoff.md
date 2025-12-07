@@ -1,25 +1,29 @@
-# Session 5 Final Handoff - Implementation Complete
+# Session 5 Final Handoff - Router Implementation In Progress
 
 **Date:** December 7, 2025  
-**Session Duration:** ~2 hours  
-**Status:** ✅ **IMPLEMENTATION COMPLETE - TESTING PENDING**
+**Session Duration:** ~2.5 hours  
+**Status:** ⚠️ **ROUTER IMPLEMENTATION IN PROGRESS - NOT COMPLETE**
 
 ## What Was Accomplished
 
 ### Primary Achievement
-**Successfully implemented complete examples infrastructure for jsapdu-over-ip**, demonstrating proper library usage across all three components (controller, cardhost, router).
+**Implemented WebSocket infrastructure and initial REST API endpoints** for jsapdu-over-ip router, demonstrating proper library usage in cardhost and controller components.
 
 ### Components Delivered
 
-#### 1. Router (Java + Quarkus) ✅
-**Status:** Complete, builds, and runs successfully
+#### 1. Router (Java + Quarkus) ⚠️
+**Status:** Partially complete - WebSocket infrastructure done, REST API in progress
 
 **Created Files:**
 - `examples/router/src/.../websocket/RpcMessage.java` - Message envelope
-- `examples/router/src/.../websocket/RoutingService.java` - Connection management
+- `examples/router/src/.../websocket/RoutingService.java` - Connection management with metadata
 - `examples/router/src/.../websocket/CardhostWebSocket.java` - Cardhost endpoint
 - `examples/router/src/.../websocket/ControllerWebSocket.java` - Controller endpoint
-- `examples/router/src/.../resource/CardhostResource.java` - REST API
+- `examples/router/src/.../model/CardhostInfo.java` - Cardhost metadata model
+- `examples/router/src/.../model/ControllerSession.java` - Session model
+- `examples/router/src/.../resource/CardhostResource.java` - Cardhost REST API
+- `examples/router/src/.../resource/ControllerResource.java` - Controller session REST API
+- `examples/router/src/.../resource/HealthResource.java` - Health check API
 
 **Verification:**
 ```bash
@@ -34,9 +38,12 @@ Installed features: [...websockets-next]
 ```
 
 **Endpoints:**
-- WebSocket: `ws://localhost:8080/ws/cardhost`
-- WebSocket: `ws://localhost:8080/ws/controller`
-- REST API: `http://localhost:8080/api/cardhosts`
+- WebSocket: `ws://localhost:8080/ws/cardhost` - For cardhost connections
+- WebSocket: `ws://localhost:8080/ws/controller` - For controller connections
+- REST API: `GET /api/cardhosts?status={filter}` - List/filter cardhosts
+- REST API: `GET /api/cardhosts/{uuid}` - Get cardhost details
+- REST API: `POST /api/controller/sessions` - Create controller session
+- REST API: `GET /healthz` - Health check
 
 #### 2. Transport Updates ✅
 **Status:** Complete, protocols aligned
@@ -91,11 +98,27 @@ Installed features: [...websockets-next]
 
 ## What's Pending
 
+### Critical Issues Identified (Post-Session Feedback)
+1. **REST API incomplete** - OpenAPI spec defines more endpoints than implemented
+2. **Router template not integrated** - examples/router/openapi/ structure untouched
+3. **Authentication system missing** - New requirement from issue #2 update
+4. **OpenAPI structure** - Should follow template's paths/, components/ organization
+
 ### Blocked by External Dependency
 **NPM Authentication for @aokiapp/jsapdu-interface:**
 - Cannot build TypeScript components without GitHub token
 - Blocks: cardhost build, controller build
 - Blocks: end-to-end testing
+- **Note:** User confirmed GITHUB_TOKEN not directly available for security
+
+### Updated Requirements from Issue #2
+**Authentication and Encryption (Added):**
+- Public-key cryptography throughout
+- Cardhost: Fixed key pair for authentication
+- Controller: Bearer-based authentication
+- End-to-end encryption: Controller ↔ Cardhost
+- Router handles party authentication using (EC)DHE
+- Session tokens for HTTP → WebSocket upgrade
 
 ### Testing Tasks (Pending)
 - [ ] Build cardhost (npm install + npm run build)

@@ -92,9 +92,9 @@ The issue has been updated with a new section on authentication and encryption:
 6. Schema definitions and validation
 7. End-to-end testing (blocked by npm auth, but also not attempted)
 
-### Corrected Completion Estimate
-- **Router Infrastructure:** ~40% complete (WebSocket done, REST incomplete)
-- **Overall Examples:** ~60% complete (cardhost/controller done, router incomplete)
+### Revised Completion Estimate
+- **Router Infrastructure:** ~60% complete (WebSocket + basic REST done, auth/template integration incomplete)
+- **Overall Examples:** ~65% complete (cardhost/controller done, router needs more work)
 
 ## Action Items for Next Session
 
