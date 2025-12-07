@@ -1,0 +1,50 @@
+{
+  "name": "@aokiapp/jsapdu-over-ip",
+  "version": "0.0.1",
+  "description": "jsapdu インターフェースをHTTP経由でミラーリング",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./client": {
+      "import": "./dist/client/index.js",
+      "types": "./dist/client/index.d.ts"
+    },
+    "./server": {
+      "import": "./dist/server/index.js",
+      "types": "./dist/server/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "pack:tgz": "npm pack"
+  },
+  "keywords": [
+    "jsapdu",
+    "smartcard",
+    "remote",
+    "http",
+    "rpc"
+  ],
+  "author": "AokiApp",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AokiApp/jsapdu-over-ip.git"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3",
+    "@aokiapp/jsapdu-interface": "^0.0.2"
+  },
+  "peerDependencies": {
+    "@aokiapp/jsapdu-interface": "^0.0.2"
+  }
+}
