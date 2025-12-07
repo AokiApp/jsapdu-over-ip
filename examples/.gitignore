@@ -31,6 +31,7 @@ Thumbs.db
 
 # Configuration (may contain secrets)
 config.json
+cardhost-config.json
 .env
 .env.local
 

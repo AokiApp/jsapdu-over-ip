@@ -1,114 +1,219 @@
-# Controller
+# Controller Component
 
-Browser-based frontend application for remotely sending APDU commands to smart cards via the router.
+## 🎯 Purpose
 
-## Overview
+**Controller is an EXAMPLE of using `@aokiapp/jsapdu-over-ip/client` to access remote smart card readers through a browser interface.**
 
-The controller is a web application that allows users to interact with remote smart card readers hosted by cardhosts. It provides a GUI for constructing and sending APDU commands and viewing responses.
+**CRITICAL**: This component uses `RemoteSmartCardPlatform` from the jsapdu-over-ip library. All card operations use jsapdu-interface methods - this makes remote cards indistinguishable from local ones!
 
-## Features
+## Library Usage
 
-- **Remote Card Access**: Connect to cardhosts via router
-- **APDU Command Builder**: Interactive UI for constructing APDU commands
-- **Real-time Communication**: WebSocket-based bidirectional communication
-- **Card Event Monitoring**: Receive notifications for card insertion/removal
-- **Low-level Operations**: Full control over APDU commands
-- **NAT-Friendly**: Uses outbound connections only
+### Core Implementation
 
-## Architecture
+```typescript
+import { RemoteSmartCardPlatform } from '@aokiapp/jsapdu-over-ip/client';
+import type { ClientTransport } from '@aokiapp/jsapdu-over-ip';
+import { CommandApdu, ResponseApdu } from '@aokiapp/jsapdu-interface';
 
-```
-┌────────────────────┐
-│   Browser UI       │
-│  (React/Vanilla)   │
-├────────────────────┤
-│  jsapdu-over-ip    │
-│   Client Proxy     │
-├────────────────────┤
-│  WebSocket Client  │
-└──────┬─────────────┘
-       │ Outbound
-       ▼
-    Router
-```
+// 1. Create custom transport for router communication
+const routerTransport: ClientTransport = new RouterClientTransport({
+  routerUrl: 'ws://router:8080/ws/controller',
+  targetCardhostUuid: selectedCardhostUuid,
+  publicKey: myPublicKey,
+  privateKey: myPrivateKey,
+});
 
-## Technology Stack
+// 2. Create remote platform - LIBRARY DOES THE REST
+const platform = new RemoteSmartCardPlatform(routerTransport);
 
-- **TypeScript**: Type-safe development
-- **jsapdu-over-ip**: Remote platform proxy
-- **WebSocket**: Real-time communication
-- **HTML/CSS**: User interface (framework TBD)
+// 3. Use exactly like local platform - TRANSPARENT!
+await platform.init();
+const devices = await platform.getDeviceInfo();
+const device = await platform.getDevice(devices[0].id);
+const card = await device.connect();
 
-## Configuration
+// 4. Send APDU - looks like local card access!
+const command = new CommandApdu(0x00, 0xA4, 0x04, 0x00, data);
+const response = await card.transmit(command);
 
-### Environment Variables
-
-- `ROUTER_URL`: Router WebSocket URL (default: `ws://localhost:8080/ws/controller`)
-- `AUTO_RECONNECT`: Enable automatic reconnection (default: `true`)
-
-### Connection Setup
-
-1. Obtain session ID from router REST API
-2. Connect to router WebSocket with session ID
-3. Select target cardhost by UUID
-4. Begin sending APDU commands
-
-## Usage
-
-### Starting the Controller
-
-```bash
-cd examples/controller
-npm install
-npm run dev
+console.log(`SW: ${response.sw1.toString(16)} ${response.sw2.toString(16)}`);
+console.log(`Data: ${Array.from(response.data).map(b => b.toString(16)).join(' ')}`);
 ```
 
-### Connecting to a Cardhost
+**That's it!** The library's `RemoteSmartCardPlatform` automatically:
+- Implements complete `SmartCardPlatform` interface
+- Serializes CommandApdu, deserializes ResponseApdu
+- Manages remote device and card proxies
+- Handles RPC calls transparently
+- You just use jsapdu-interface methods!
 
-1. Enter router URL
-2. Click "Connect"
-3. Select cardhost from list
-4. Start sending commands
+## Application Structure
 
-### Sending APDU Commands
-
-1. Enter APDU command in hex format (e.g., `00A4040008A0000000030000`)
-2. Click "Send"
-3. View response in output panel
-
-## Development
-
-### Building
-
-```bash
-npm run build
+```
+┌─────────────────────────────────────────────────────────┐
+│ Browser UI (HTML/CSS/JS)                                │
+│ - Cardhost selection                                    │
+│ - APDU command builder                                  │
+│ - Response viewer                                       │
+│ - Communication log                                     │
+└───────────────┬─────────────────────────────────────────┘
+                │ Uses
+                ▼
+┌─────────────────────────────────────────────────────────┐
+│ Application Logic (app.ts)                              │
+│ - Manages UI state                                      │
+│ - Calls jsapdu-interface methods                        │
+│ - Handles user interactions                             │
+└───────────────┬─────────────────────────────────────────┘
+                │ Uses jsapdu-interface
+                ▼
+┌─────────────────────────────────────────────────────────┐
+│ @aokiapp/jsapdu-over-ip/client Library                  │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │   RemoteSmartCardPlatform                           │ │
+│ │   - Implements SmartCardPlatform                    │ │
+│ │   - Creates RemoteSmartCardDevice proxies           │ │
+│ │   - Creates RemoteSmartCard proxies                 │ │
+│ │   - Handles ALL RPC automatically                   │ │
+│ └──────────────┬──────────────────────────────────────┘ │
+└────────────────┼────────────────────────────────────────┘
+                 │ Uses
+                 ▼
+┌─────────────────────────────────────────────────────────┐
+│ Custom ClientTransport Implementation                   │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │   RouterClientTransport                             │ │
+│ │   - Connects to router via WebSocket                │ │
+│ │   - Handles authentication                          │ │
+│ │   - Sends RpcRequest to router                      │ │
+│ │   - Receives RpcResponse from router                │ │
+│ │   - Specifies target cardhost UUID                  │ │
+│ └──────────────┬──────────────────────────────────────┘ │
+└────────────────┼────────────────────────────────────────┘
+                 │ WebSocket
+                 ▼
+           ┌──────────┐
+           │  Router  │
+           └──────────┘
 ```
 
-### Type Checking
+## Example Usage
 
-```bash
-npm run typecheck
+### Typical Flow
+
+```typescript
+// 1. Discover cardhosts via REST API
+const cardhosts = await apiClient.listCardhosts();
+
+// 2. User selects cardhost
+const selected = cardhosts[0];
+
+// 3. Create transport targeting that cardhost
+const transport = new RouterClientTransport({
+  routerUrl: 'ws://router:8080/ws/controller',
+  targetCardhostUuid: selected.uuid,
+  // ... auth config
+});
+
+// 4. Create remote platform
+const platform = new RemoteSmartCardPlatform(transport);
+
+// 5. Use jsapdu-interface - looks like local!
+await platform.init();
+const devices = await platform.getDeviceInfo();
+
+// Display available readers
+devices.forEach(device => {
+  console.log(`Reader: ${device.friendlyName}`);
+  console.log(`Supports APDU: ${device.supportsApdu}`);
+});
+
+// 6. Get device and connect to card
+const device = await platform.getDevice(devices[0].id);
+const card = await device.connect();
+
+// 7. Get ATR
+const atr = card.getATR();
+console.log(`ATR: ${Array.from(atr).map(b => b.toString(16)).join(' ')}`);
+
+// 8. Send SELECT command
+const selectAid = [0xA0, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03];
+const selectCmd = new CommandApdu(0x00, 0xA4, 0x04, 0x00, new Uint8Array(selectAid));
+const selectResp = await card.transmit(selectCmd);
+
+if (selectResp.sw1 === 0x90 && selectResp.sw2 === 0x00) {
+  console.log('SELECT successful');
+} else {
+  console.error(`SELECT failed: ${selectResp.sw1} ${selectResp.sw2}`);
+}
+
+// 9. Clean up
+await card.disconnect();
+await platform.cleanup();
 ```
 
-### Cleaning
+## Key Points
 
-```bash
-npm run clean
+### ✅ DO
+
+- Use `RemoteSmartCardPlatform` from library
+- Use `CommandApdu` and `ResponseApdu` from jsapdu-interface
+- Implement `ClientTransport` for router communication
+- Let library handle all RPC
+- Focus on UI, transport, and authentication
+
+### ❌ DON'T
+
+- Create custom APDU types - use jsapdu-interface
+- Manually serialize/deserialize RPC
+- Bypass RemoteSmartCardPlatform
+- Reimplement card/device proxies
+- Parse hex strings manually - use CommandApdu
+
+## Dependencies
+
+```json
+{
+  "dependencies": {
+    "@aokiapp/jsapdu-over-ip": "workspace:*",  // ← PRIMARY LIBRARY
+  },
+  "devDependencies": {
+    "@aokiapp/jsapdu-interface": "^0.0.2",      // ← INTERFACE
+    "vite": "^5.4.11",
+    "typescript": "^5.9.3"
+  }
+}
 ```
 
-## Security Considerations
+## UI Implementation
 
-- Controller should use WSS (secure WebSocket) in production
-- Public-key cryptography for authentication (Web Crypto API compliant)
-- Public-key based peer discovery and management
-- Validate cardhost access permissions based on public keys
-- Rate limit APDU commands
-- Log all operations for audit trail
+UI should work with jsapdu-interface types:
 
-## Future Enhancements
+```typescript
+// APDU input handling
+async function sendApdu(hexString: string) {
+  // Parse hex to bytes
+  const bytes = parseHexString(hexString);
+  
+  // Create CommandApdu (jsapdu-interface type)
+  const command = new CommandApdu(
+    bytes[0], // CLA
+    bytes[1], // INS
+    bytes[2], // P1
+    bytes[3], // P2
+    bytes.slice(5) // Data (if Lc > 0)
+  );
+  
+  // Transmit using jsapdu-interface method
+  const response = await card.transmit(command);
+  
+  // Display using jsapdu-interface properties
+  displayResponse(response.sw1, response.sw2, response.data);
+}
+```
 
-- Command history and replay
-- APDU templates for common operations
-- Response parsing and formatting
-- Card session recording
-- Multiple simultaneous cardhost connections
+## References
+
+- Main library: `/src/client/platform-proxy.ts`
+- Transport interface: `/src/transport.ts`
+- jsapdu-interface: `@aokiapp/jsapdu-interface`
