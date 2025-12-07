@@ -77,7 +77,8 @@ export class FetchClientTransport implements ClientTransport {
         "id" in obj &&
         typeof (obj as RpcResponse).id === "string" &&
         ("result" in obj || "error" in obj) &&
-        (!("error" in obj) || typeof (obj as RpcResponse).error?.code === "string")
+        (!("error" in obj) ||
+          typeof (obj as RpcResponse).error?.code === "string")
       );
     };
     if (!checkIfRpcResponse(result)) {
