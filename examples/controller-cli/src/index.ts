@@ -7,7 +7,7 @@
  */
 
 import { RemoteSmartCardPlatform } from "@aokiapp/jsapdu-over-ip/client";
-import { CommandApdu } from "@aokiapp/jsapdu-interface";
+import { CommandApdu, type SmartCardDevice, type SmartCard } from "@aokiapp/jsapdu-interface";
 import type {
   ClientTransport,
   RpcRequest,
@@ -151,8 +151,8 @@ class CLIController {
     console.log("  help - Show this help");
     console.log("  exit - Exit the CLI\n");
 
-    let selectedDevice: any = null;
-    let cardSession: any = null;
+    let selectedDevice: SmartCardDevice | null = null;
+    let cardSession: SmartCard | null = null;
 
     const prompt = () => {
       this.rl.question("> ", async (line) => {
@@ -344,8 +344,9 @@ class CLIController {
               break;
             }
           }
-        } catch (error: any) {
-          console.error(`❌ Error: ${error.message}\n`);
+        } catch (error) {
+          const err = error as Error;
+          console.error(`❌ Error: ${err.message}\n`);
         }
 
         prompt();
