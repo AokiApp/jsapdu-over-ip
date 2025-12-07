@@ -1,10 +1,10 @@
-# WebSocket Protocol Specification
+# WebSocket Protocol Specification (Draft)
 
 ## Overview
 
-The router uses WebSocket connections for bidirectional, real-time communication between controllers and cardhosts. This document defines the message format and protocol flow.
+The router uses WebSocket connections for bidirectional, real-time communication between controllers and cardhosts. This document provides example message formats and protocol flows. **The protocol should remain flexible during implementation to accommodate changing requirements.**
 
-## Connection Endpoints
+## Connection Endpoints (Example)
 
 ### Cardhost Connection
 ```
@@ -12,8 +12,8 @@ ws://router-host:port/ws/cardhost
 ```
 
 **Authentication**: 
-- Initial message must include cardhost UUID and optional secret
-- JWT token in query parameter (optional)
+- Public-key cryptography based (Web Crypto API compliant)
+- Initial message includes UUID (for addressing) and public key (for authentication)
 
 ### Controller Connection
 ```
@@ -21,16 +21,16 @@ ws://router-host:port/ws/controller/{sessionId}
 ```
 
 **Authentication**:
-- Session ID obtained from REST API
-- JWT token in query parameter (optional)
+- Public-key cryptography based (Web Crypto API compliant)
+- Session ID obtained from REST API (optional pattern)
 
 ---
 
-## Message Format
+## Message Format (Example)
 
-All messages are JSON-encoded and follow one of three patterns:
+Messages are JSON-encoded. Below is one possible approach that can evolve:
 
-### 1. RPC Request (Controller → Router → Cardhost)
+### 1. RPC Request Example (Controller → Router → Cardhost)
 
 ```json
 {
@@ -42,14 +42,14 @@ All messages are JSON-encoded and follow one of three patterns:
 }
 ```
 
-**Fields**:
-- `type`: Always "request"
-- `id`: Unique request identifier (used to match response)
-- `method`: jsapdu method name (e.g., "platform.init", "device.connect")
-- `params`: Array of method parameters
-- `targetCardhost`: UUID of target cardhost (controller messages only)
+**Fields** (example):
+- `type`: Message type
+- `id`: Request identifier for matching responses
+- `method`: jsapdu method name
+- `params`: Method parameters
+- `targetCardhost`: UUID for addressing (not authentication)
 
-### 2. RPC Response (Cardhost → Router → Controller)
+### 2. RPC Response Example (Cardhost → Router → Controller)
 
 **Success Response**:
 ```json
@@ -76,13 +76,7 @@ All messages are JSON-encoded and follow one of three patterns:
 }
 ```
 
-**Fields**:
-- `type`: Always "response"
-- `id`: Matching request ID
-- `result`: Method result (on success)
-- `error`: Error object (on failure)
-
-### 3. Event Notification (Cardhost → Router → Controller)
+### 3. Event Notification Example (Cardhost → Router → Controller)
 
 ```json
 {
@@ -96,15 +90,9 @@ All messages are JSON-encoded and follow one of three patterns:
 }
 ```
 
-**Fields**:
-- `type`: Always "event"
-- `event`: Event name
-- `data`: Event-specific data
-- `sourceCardhost`: UUID of originating cardhost
+### 4. Control Messages (Example)
 
-### 4. Control Messages
-
-**Heartbeat (both directions)**:
+**Heartbeat**:
 ```json
 {
   "type": "heartbeat",
@@ -112,34 +100,30 @@ All messages are JSON-encoded and follow one of three patterns:
 }
 ```
 
-**Cardhost Registration**:
+**Cardhost Registration** (with public-key authentication):
 ```json
 {
   "type": "register",
   "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "publicKey": "<base64-encoded-public-key>",
   "name": "Office Card Reader",
-  "secret": "optional-secret-key",
   "capabilities": {
     "readers": 2,
     "supportedProtocols": ["T=0", "T=1"]
-  }
+  },
+  "signature": "<authentication-signature>"
 }
 ```
 
-**Registration Acknowledgment**:
-```json
-{
-  "type": "registered",
-  "success": true,
-  "message": "Cardhost registered successfully"
-}
-```
+**Note**: These are examples. The actual protocol implementation may differ based on requirements.
 
 ---
 
-## Protocol Flow
+## Protocol Flow (Example)
 
-### Cardhost Registration Flow
+Below are example flows. Actual implementation may vary.
+
+### Cardhost Registration Flow (Example)
 
 ```
 Cardhost                Router
@@ -147,7 +131,8 @@ Cardhost                Router
    |----CONNECT----------->|
    |                       |
    |----register---------->|
-   |                       | (validate + store)
+   | (with public key)     |
+   |                       | (validate signature + store)
    |<---registered---------|
    |                       |
    |----heartbeat--------->| (every 30s)
@@ -196,9 +181,9 @@ Cardhost            Router          Controller
 
 ---
 
-## Error Codes
+## Error Codes (Example)
 
-Following JSON-RPC 2.0 error code conventions:
+Following JSON-RPC 2.0 conventions (can be adapted):
 
 | Code   | Message               | Description                          |
 |--------|-----------------------|--------------------------------------|
@@ -215,19 +200,20 @@ Following JSON-RPC 2.0 error code conventions:
 
 ---
 
-## Connection Management
+## Connection Management (Suggested)
 
-### Heartbeat
-- Both sides send heartbeat every 30 seconds
-- Connection considered dead if no heartbeat for 90 seconds
+### Heartbeat (Example)
+- Both sides send heartbeat periodically (e.g., every 30 seconds)
+- Connection considered dead if no heartbeat for timeout period
 - Router closes stale connections
 
 ### Reconnection
 - Cardhosts should reconnect automatically on disconnect
 - Controllers should reconnect and restore session
-- Cardhost UUID persists across reconnections
+- UUID (for addressing) persists across reconnections
+- Public keys used for re-authentication
 
-### Connection Limits
+### Connection Limits (Example)
 - Maximum 1 connection per cardhost UUID
 - Multiple controllers can connect simultaneously
 - Router may impose rate limits
@@ -237,14 +223,14 @@ Following JSON-RPC 2.0 error code conventions:
 ## Security Considerations
 
 ### Authentication
-- Cardhosts: UUID + optional secret key
-- Controllers: Session-based or JWT
-- Production should use TLS (wss://)
+- **Public-key cryptography**: All authentication via Web Crypto API
+- **UUID for addressing only**: Not used for authentication
+- **TLS/WSS**: Required for production
 
 ### Authorization
-- Controllers specify target cardhost UUID
-- Router validates controller has access to cardhost
-- Access control list stored in database
+- Public-key based access control
+- Router validates controller has permission to access cardhost
+- Access control managed via public keys, not UUIDs
 
 ### Rate Limiting
 - Maximum requests per second per connection
@@ -252,30 +238,19 @@ Following JSON-RPC 2.0 error code conventions:
 - Maximum message size
 
 ### APDU Validation
-- Router may validate APDU format
-- Block dangerous commands (e.g., card management)
+- Validate APDU format
+- Block potentially dangerous commands
 - Log all APDU traffic for audit
 
 ---
 
 ## Implementation Notes
 
+**This protocol specification is intentionally flexible and should be adapted during implementation based on actual requirements. The examples provided are not prescriptive.**
+
 ### Message Sequencing
-- Request IDs must be unique per connection
-- Responses must match request IDs
+- Request IDs should be unique per connection
+- Responses should match request IDs
 - Events have no matching request
 
-### Buffering
-- Router should buffer messages if target is temporarily unavailable
-- Maximum buffer size to prevent memory issues
-- Timeout and return error if buffer full
-
-### Multiplexing
-- Single WebSocket connection handles multiple concurrent requests
-- Use request IDs to match responses
-- Events interleaved with responses
-
-### Error Handling
-- Connection errors: reconnect with exponential backoff
-- Request timeout: return error after 30 seconds
-- Invalid message: log and ignore (don't close connection)
+**Note**: Implementation details for buffering, multiplexing, and error handling should be determined during development based on actual needs.

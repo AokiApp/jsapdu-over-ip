@@ -1,10 +1,18 @@
-# Cardhost Monitor
+# Cardhost Integrated Monitor
 
-Web-based monitoring dashboard for cardhost owners to view operational status, metrics, and logs.
+Web-based monitoring UI integrated into the cardhost service for operational visibility.
 
 ## Overview
 
-The cardhost monitor is a web UI that provides visibility into cardhost operations. It can run as a standalone application or be embedded within the cardhost process.
+The cardhost monitor is a web UI module that runs within the same process as the cardhost service. It provides the cardhost owner with visibility into operational status, metrics, and events. This is not a standalone application or microservice.
+
+## Integration Architecture
+
+- **Same Process**: Runs within cardhost Node.js process
+- **No Formal API**: Direct access to cardhost internal state
+- **Monolithic Code**: Efficient, tightly coupled implementation
+- **Optional**: Can be excluded at compile time
+- **Separate Port**: Serves UI on different port (e.g., 3001) while cardhost runs main service
 
 ## Features
 
@@ -12,49 +20,15 @@ The cardhost monitor is a web UI that provides visibility into cardhost operatio
 - **Reader Information**: List of connected card readers and card presence
 - **Metrics Dashboard**: Charts for uptime, command count, and latency
 - **Event Log**: View recent card insertion/removal events
-- **System Information**: Display cardhost UUID, version, and configuration
+- **System Information**: Display cardhost UUID, public key fingerprint, version
 - **Responsive UI**: Works on desktop and mobile browsers
 
-## Architecture
-
-```
-┌────────────────────────┐
-│   Browser UI           │
-│   (Web Dashboard)      │
-├────────────────────────┤
-│   Charts & Metrics     │
-│   (Chart.js/D3)        │
-├────────────────────────┤
-│   API Client           │
-│   (REST/WebSocket)     │
-└───────┬────────────────┘
-        │
-        ▼
-┌────────────────────────┐
-│   Cardhost Service     │
-│   (HTTP/WS Server)     │
-└────────────────────────┘
-```
-
-### Deployment Modes
-
-**Embedded Mode**: Monitor runs in same process as cardhost
-- Cardhost starts HTTP server on separate port
-- Monitor served as static files
-- Direct access to cardhost state
-
-**Standalone Mode**: Monitor as separate application
-- Connects to cardhost via API
-- Can monitor multiple cardhosts
-- Better isolation
-
-## Technology Stack
+## Technology Stack (Suggested)
 
 - **TypeScript**: Type-safe development
 - **HTML/CSS**: User interface
-- **Web Framework**: React/Vue/Svelte or vanilla (TBD)
-- **Charts**: Chart.js or D3.js for metrics visualization
-- **WebSocket**: Real-time updates
+- **Simple Web Framework**: Minimal overhead
+- **Optional**: Chart.js for metrics visualization
 
 ## Features Detail
 
@@ -63,7 +37,8 @@ The cardhost monitor is a web UI that provides visibility into cardhost operatio
 **Status Panel**:
 - Connection state (connected/disconnected)
 - Cardhost UUID
-- Router URL
+- UUID (for addressing)
+- Public key fingerprint (for identity)
 - Uptime counter
 
 **Readers Panel**:
@@ -81,92 +56,60 @@ The cardhost monitor is a web UI that provides visibility into cardhost operatio
 **Events Panel**:
 - Recent card insertions/removals
 - Connection events
+- Authentication events
 - Error messages
 - Timestamp for each event
 
-### Configuration View
+## Implementation Notes
 
-- Display current configuration
-- Router URL
-- Heartbeat interval
-- UUID persistence location
+### No Formal API
 
-## API Requirements
+The monitor module directly accesses cardhost internal state:
+- Shared memory/objects within the same process
+- No REST API or explicit interface needed
+- Efficient monolithic implementation
+- Event emitters for real-time updates
 
-The monitor expects the cardhost to expose these endpoints:
+### Usage
 
-### REST API
-
-- `GET /api/status` - Current status
-- `GET /api/readers` - List of card readers
-- `GET /api/metrics` - Metrics data
-- `GET /api/events` - Recent events
-- `GET /api/config` - Configuration
-
-### WebSocket
-
-- `ws://host:port/ws/monitor` - Real-time updates
-
-## Usage
-
-### Standalone Mode
-
-```bash
-cd examples/cardhost-monitor
-npm install
-npm run dev
-```
-
-### Embedded Mode
-
-Start cardhost with monitor enabled:
+The monitor is automatically available when cardhost starts (if not excluded at build time):
 
 ```bash
 cd examples/cardhost
-ENABLE_MONITOR=true npm start
-# Monitor available at http://localhost:3001
+npm start
+# Cardhost runs on default port
+# Monitor UI available at http://localhost:3001
+```
+
+To build without monitor:
+
+```bash
+npm run build -- --no-monitor
+# or use environment variable
+BUILD_WITHOUT_MONITOR=true npm run build
 ```
 
 ## Development
 
-### Building
+Since the monitor is integrated into cardhost, development is done within the cardhost codebase:
 
 ```bash
-npm run build
+cd examples/cardhost
+npm run dev  # Starts cardhost with monitor
 ```
-
-### Type Checking
-
-```bash
-npm run typecheck
 ```
-
-### Cleaning
-
-```bash
-npm run clean
-```
-
-## Configuration
-
-### Environment Variables
-
-- `CARDHOST_API_URL`: Cardhost API URL (default: `http://localhost:3001`)
-- `REFRESH_INTERVAL`: Metrics refresh interval in ms (default: `5000`)
 
 ## Security
 
 - Monitor should be accessible only to cardhost owner
-- Implement authentication for standalone mode
+- Bind to localhost or use authentication
 - Use HTTPS in production
-- Restrict CORS to trusted origins
+- Restrict network access appropriately
 
 ## Future Enhancements
 
 - Historical metrics storage
 - Alert configuration
-- Email/SMS notifications
-- Multi-cardhost monitoring
+- Enhanced visualization
 - Export metrics (CSV/JSON)
 - Dark mode theme
-- Mobile app version

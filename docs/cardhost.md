@@ -1,52 +1,31 @@
-# Cardhost
+# Cardhost with Integrated Monitor
 
-Node.js service that hosts physical smart card readers and executes APDU commands on behalf of remote controllers.
+Node.js service that hosts physical smart card readers, executes APDU commands on behalf of remote controllers, and provides an integrated monitoring UI for the cardhost owner.
 
 ## Overview
 
-The cardhost is a background service that runs on a machine with physical card readers. It connects to the router and allows remote controllers to access the attached card readers as if they were local.
+The cardhost is a monolithic background service that runs on a machine with physical card readers. It connects to the router and allows remote controllers to access the attached card readers. The monitoring UI runs in the same process (optional at compile time) to provide operational visibility to the cardhost owner.
 
 ## Features
 
 - **Physical Card Reader Access**: Uses jsapdu-pcsc for PC/SC communication
-- **Persistent UUID**: Maintains identity across restarts
+- **UUID for Addressing**: Persistent UUID for peer addressing (not authentication)
+- **Mutual Security**: Public-key cryptography for authentication (Web Crypto API compliant)
 - **Automatic Reconnection**: Handles network interruptions gracefully
 - **Real-time Events**: Notifies controllers of card insertion/removal
 - **NAT-Friendly**: Uses outbound connections only
 - **Multiple Reader Support**: Can host multiple card readers simultaneously
+- **Integrated Monitoring**: Optional web UI in same process for cardhost owner
+- **Public-key Identity**: Peer identity and discovery based on public keys
 
-## Architecture
+## Technology Stack (Suggested)
 
-```
-┌────────────────────┐
-│  Cardhost Service  │
-├────────────────────┤
-│   jsapdu-pcsc      │
-│ (Local Platform)   │
-├────────────────────┤
-│ jsapdu-over-ip     │
-│  Server Adapter    │
-├────────────────────┤
-│  WebSocket Client  │
-└──────┬─────────────┘
-       │ Outbound
-       ▼
-    Router
-       ▲
-       │
-┌──────┴─────────────┐
-│   PC/SC Daemon     │
-│  (Card Readers)    │
-└────────────────────┘
-```
-
-## Technology Stack
-
-- **Node.js**: Runtime environment
+- **Node.js**: Runtime environment (version 23+ recommended)
 - **TypeScript**: Type-safe development
 - **jsapdu-pcsc**: PC/SC card reader access (or mock for testing)
 - **jsapdu-over-ip**: Server adapter for remote access
 - **WebSocket (ws)**: Communication with router
+- **Web Crypto API**: Cryptographic operations for authentication
 
 ## Configuration
 
@@ -54,23 +33,38 @@ The cardhost is a background service that runs on a machine with physical card r
 
 - `ROUTER_URL`: Router WebSocket URL (default: `ws://localhost:8080/ws/cardhost`)
 - `CARDHOST_NAME`: Friendly name for this cardhost (optional)
-- `CARDHOST_SECRET`: Authentication secret (optional)
 - `UUID_FILE`: Path to UUID storage file (default: `./config.json`)
 - `HEARTBEAT_INTERVAL`: Heartbeat interval in ms (default: `30000`)
 - `USE_MOCK_PLATFORM`: Use mock platform if PC/SC unavailable (default: `false`)
+- `ENABLE_MONITOR`: Enable integrated monitoring UI (default: `true`, can be excluded at compile time)
 
-### UUID Persistence
+### UUID and Identity
 
-The cardhost generates a UUID on first run and stores it in a configuration file:
+The cardhost uses two identity mechanisms:
 
+**UUID (for addressing only)**:
+- Generated on first run and stored locally
+- Used for routing/addressing in the router
+- Survives restarts
+- **Not used for authentication or security**
+- Changing the UUID file does not provide authentication or prevent impersonation
+
+**Public Key (for identity and authentication)**:
+- Public-key pair generated using Web Crypto API
+- Public key used for peer identity and discovery
+- Private key used for authentication
+- Mutual authentication with router and controllers
+- Stored securely (consider encryption)
+
+Configuration file example:
 ```json
 {
   "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "publicKey": "<base64-encoded-public-key>",
+  "privateKey": "<encrypted-private-key>",
   "createdAt": "2025-12-07T06:00:00Z"
 }
 ```
-
-This UUID persists across restarts and is used to identify the cardhost to the router.
 
 ## Usage
 
@@ -99,36 +93,49 @@ USE_MOCK_PLATFORM=true npm start
 
 ### Startup Sequence
 
-1. Load or generate UUID
+1. Load or generate UUID (addressing) and key pair (identity/authentication)
 2. Initialize jsapdu platform (PC/SC or mock)
-3. Connect to router via WebSocket
-4. Send registration message with UUID and capabilities
-5. Begin heartbeat loop
-6. Listen for APDU requests
+3. Start integrated monitoring UI if enabled
+4. Connect to router via WebSocket
+5. Authenticate using public-key cryptography
+6. Send registration with UUID, public key, and capabilities
+7. Begin heartbeat loop
+8. Listen for APDU requests
 
 ### Request Handling
 
-1. Receive RPC request from router
-2. Route to appropriate jsapdu method
-3. Execute on local platform
-4. Send response back through router
-5. Log operation
+1. Receive RPC request from router (authenticated)
+2. Verify request authorization
+3. Route to appropriate jsapdu method
+4. Execute on local platform
+5. Send response back through router
+6. Log operation
 
 ### Event Reporting
 
-- Card insertion → send event to router → broadcast to controllers
-- Card removal → send event to router → broadcast to controllers
+- Card insertion → send event to router → broadcast to authorized controllers
+- Card removal → send event to router → broadcast to authorized controllers
 - Reader connection/disconnection → update capabilities
+
+### Integrated Monitoring
+
+The monitoring UI runs in the same process:
+- No separate API or microservice architecture
+- Direct access to cardhost internal state
+- Efficient monolithic code
+- Can be excluded at compile time via build flag
+- Serves web interface on separate port (e.g., 3001)
 
 ## Security Considerations
 
-- Store UUID securely (consider encryption)
-- Implement authentication secret
-- Validate incoming APDU commands
-- Rate limit requests
-- Log all operations
-- Restrict access to configuration file
-- Use WSS in production
+- **Public-key authentication**: All authentication via Web Crypto API
+- **UUID not for security**: UUID only for addressing; impersonation requires key theft
+- **Secure key storage**: Private keys should be encrypted
+- **Mutual authentication**: Verify router identity
+- **Validate commands**: Sanitize and validate incoming APDU commands
+- **Rate limiting**: Protect against DoS
+- **Audit logging**: Log all operations
+- **TLS/WSS**: Use in production
 
 ## Troubleshooting
 
@@ -140,11 +147,14 @@ If PC/SC libraries are not installed, the cardhost will automatically fall back 
 
 - Check router URL and network connectivity
 - Verify firewall allows outbound WebSocket connections
+- Verify public-key authentication is working
 - Check router logs for connection attempts
 
-### UUID Conflicts
+### Key Management
 
-If UUID collision occurs (unlikely with 128-bit UUIDs), delete `config.json` and restart to generate new UUID.
+- Protect private key file with appropriate permissions
+- Consider hardware security module (HSM) for production
+- Back up keys securely
 
 ## Development
 
@@ -172,6 +182,6 @@ npm run clean
 - Configuration hot-reload
 - Metrics export (Prometheus)
 - Multiple router support (failover)
-- Access control list for controllers
-- Command filtering and validation
-- Session recording
+- Public-key based access control
+- Hardware security module (HSM) integration
+- Enhanced monitoring dashboards

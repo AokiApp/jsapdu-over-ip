@@ -4,7 +4,7 @@ Java-based Quarkus server that connects remote controllers with cardhosts over t
 
 ## Overview
 
-The router is an internet-facing server that acts as a relay between controllers (in browsers) and cardhosts (hosting physical card readers). It maintains WebSocket connections with both parties and routes APDU commands and responses between them.
+The router is an internet-facing server that acts as a relay between controllers (in browsers) and cardhosts (hosting physical card readers). It maintains WebSocket connections with both parties and routes APDU commands and responses between them using public-key cryptography for authentication.
 
 ## Features
 
@@ -12,69 +12,35 @@ The router is an internet-facing server that acts as a relay between controllers
 - **WebSocket Support**: Real-time bidirectional communication
 - **RESTful API**: HTTP endpoints for registration and discovery
 - **PostgreSQL Storage**: Persistent cardhost registry
-- **JWT Authentication**: Secure controller sessions
+- **Public-key Authentication**: Robust authentication not limited to JWT
+- **Public-key Discovery**: Peer discovery and management based on public keys
 - **Health Monitoring**: SmallRye Health checks
 - **Metrics**: Prometheus-compatible metrics
 - **OpenAPI Documentation**: Auto-generated API docs
 - **Containerized**: Docker/Kubernetes ready via Jib
 
-## Architecture
+## Technology Stack (Suggested)
 
-```
-┌──────────────┐         ┌──────────────┐
-│ Controller   │         │  Cardhost    │
-│ (WebSocket)  │         │ (WebSocket)  │
-└──────┬───────┘         └──────┬───────┘
-       │                        │
-       │ Outbound               │ Outbound
-       ▼                        ▼
-┌─────────────────────────────────────┐
-│            Router Server             │
-├─────────────────────────────────────┤
-│  WebSocket Handler                  │
-│  - /ws/controller/{sessionId}       │
-│  - /ws/cardhost                     │
-├─────────────────────────────────────┤
-│  REST API                           │
-│  - /api/cardhosts (GET)             │
-│  - /api/cardhosts/{uuid} (GET)      │
-│  - /api/controller/sessions (POST)  │
-├─────────────────────────────────────┤
-│  Business Logic                     │
-│  - Message routing                  │
-│  - Connection management            │
-│  - Authentication                   │
-├─────────────────────────────────────┤
-│  PostgreSQL Database                │
-│  - Cardhost registry                │
-│  - Controller sessions              │
-│  - Audit logs                       │
-└─────────────────────────────────────┘
-```
-
-## Technology Stack
-
-- **Quarkus 3.x**: Modern Java framework
+- **Quarkus 3.x**: Modern Java framework (based on quarkus-crud template)
 - **RESTEasy Reactive**: Reactive REST endpoints
 - **WebSockets**: Quarkus WebSocket support
 - **PostgreSQL 15**: Relational database
 - **Flyway**: Database migrations
 - **MyBatis**: SQL mapper
 - **SmallRye OpenAPI**: API documentation
-- **SmallRye JWT**: Authentication
+- **Public-key cryptography**: For authentication (not limited to JWT)
 - **SmallRye Health**: Health checks
 - **Micrometer Prometheus**: Metrics
 - **Jib**: Container image builder
 
 ## Project Structure
 
-Based on quarkus-crud template:
+Based on quarkus-crud template. The exact structure may evolve during implementation:
 
 ```
 router/
 ├── build.gradle
 ├── settings.gradle
-├── gradle.properties
 ├── openapi/
 │   └── router-api.yaml
 ├── src/main/
@@ -104,11 +70,11 @@ router/
 └── src/test/
 ```
 
+**Note**: The detailed structure should remain flexible during development.
+
 ## Configuration
 
-### application.properties
-
-Key configuration properties:
+Example `application.properties` (adapt as needed):
 
 ```properties
 # Server
@@ -118,8 +84,6 @@ quarkus.http.cors=true
 # Database
 quarkus.datasource.db-kind=postgresql
 quarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/jsapdu_router
-quarkus.datasource.username=jsapdu
-quarkus.datasource.password=changeme
 
 # Flyway migrations
 quarkus.flyway.migrate-at-start=true
@@ -127,9 +91,8 @@ quarkus.flyway.migrate-at-start=true
 # WebSocket
 quarkus.websocket.max-frame-size=1048576
 
-# JWT
-mp.jwt.verify.publickey.location=META-INF/public-key.pem
-mp.jwt.verify.issuer=https://router.example.com
+# Public-key authentication configuration
+# (specific properties depend on implementation)
 
 # Health checks
 quarkus.smallrye-health.root-path=/healthz
@@ -140,6 +103,8 @@ quarkus.micrometer.export.prometheus.enabled=true
 ```
 
 ## API Endpoints
+
+The API design may evolve during implementation. Below are suggested endpoints:
 
 ### REST API
 
@@ -157,11 +122,14 @@ quarkus.micrometer.export.prometheus.enabled=true
 
 ## Database Schema
 
+Example schema (may evolve during implementation):
+
 ### cardhosts table
 
 ```sql
 CREATE TABLE cardhosts (
   uuid UUID PRIMARY KEY,
+  public_key TEXT NOT NULL,
   name VARCHAR(255),
   status VARCHAR(20) NOT NULL,
   capabilities JSONB,
@@ -177,6 +145,7 @@ CREATE TABLE cardhosts (
 ```sql
 CREATE TABLE controller_sessions (
   session_id UUID PRIMARY KEY,
+  public_key TEXT NOT NULL,
   name VARCHAR(255),
   created_at TIMESTAMP DEFAULT NOW(),
   expires_at TIMESTAMP NOT NULL

@@ -1,21 +1,31 @@
 # Implementation Checklist for Next Session
 
-This document provides a clear roadmap for implementing the examples components in the next session.
+This document provides a roadmap for implementing the examples components in the next session.
+
+**Important**: This checklist has been updated to reflect the revised architecture based on review feedback:
+- Cardhost-monitor is integrated into cardhost (not standalone)
+- Public-key cryptography for all authentication (Web Crypto API)
+- UUID used only for addressing, not security
+- More flexible, less prescriptive approach
 
 ## Session 1 Completed ✅
 
-All design, architecture, and planning work has been completed:
+All design, architecture, and planning work has been completed and revised:
 - Directory structure created
-- OpenAPI specification for router
-- WebSocket protocol defined
+- OpenAPI specification for router (draft, flexible)
+- WebSocket protocol defined (example, flexible)
 - Shared TypeScript types and utilities
-- Comprehensive documentation
+- Comprehensive documentation (revised)
 - CI/CD workflow skeleton
 - Monorepo configuration
+- License changed to ANAL-Tight
 
 ## Session 2 Goals
 
-Implement the four main components with working code.
+Implement the three main components with working code:
+1. **Shared** - TypeScript utilities (mostly done)
+2. **Router** - Quarkus server with public-key auth
+3. **Cardhost** - Node.js service with integrated monitor
 
 ---
 
@@ -26,44 +36,41 @@ Implement the four main components with working code.
 
 ### Tasks
 - [ ] Verify TypeScript compilation works
-- [ ] No additional implementation needed - types and utils are complete
-
-**Files**:
-- ✅ `examples/shared/src/protocol.ts`
-- ✅ `examples/shared/src/types.ts`
-- ✅ `examples/shared/src/utils.ts`
-- ✅ `examples/shared/src/index.ts`
+- [ ] Update protocol.ts if needed for public-key auth fields
+- [ ] No major changes needed
 
 ---
 
 ## 2. Router Implementation (Priority: High)
 
-**Status**: OpenAPI spec complete, Java implementation needed  
+**Status**: OpenAPI spec complete (draft), Java implementation needed  
 **Estimated Time**: 90-120 minutes
+
+### Key Changes from Original Plan
+- Implement public-key cryptography instead of JWT
+- Store public keys in database alongside UUIDs
+- UUID for addressing only, public key for authentication
+- Follow quarkus-crud template but remain flexible
 
 ### Tasks
 
 #### Project Setup
 - [ ] Copy quarkus-crud template structure to `examples/router/`
-- [ ] Update `build.gradle` with dependencies
+- [ ] Update `build.gradle` with dependencies (including crypto libs)
 - [ ] Create `settings.gradle`
 - [ ] Setup `gradle.properties`
 
 #### Database Layer
 - [ ] Create Flyway migration `V1__init_schema.sql`:
-  - `cardhosts` table
-  - `controller_sessions` table
+  - `cardhosts` table (with public_key column)
+  - `controller_sessions` table (with public_key column)
 - [ ] Create MyBatis mappers:
   - `CardhostMapper.java` + `CardhostMapper.xml`
   - `SessionMapper.java` + `SessionMapper.xml`
 
-#### Entity Layer
-- [ ] `app.aoki.jsapdu.router.entity.Cardhost.java`
-- [ ] `app.aoki.jsapdu.router.entity.ControllerSession.java`
-
-#### Service Layer
+#### Service Layer  
 - [ ] `app.aoki.jsapdu.router.service.CardhostService.java` - CRUD for cardhosts
-- [ ] `app.aoki.jsapdu.router.service.SessionService.java` - Session management
+- [ ] `app.aoki.jsapdu.router.service.AuthService.java` - Public-key authentication
 - [ ] `app.aoki.jsapdu.router.service.RoutingService.java` - Message routing logic
 
 #### REST API Layer
@@ -73,17 +80,18 @@ Implement the four main components with working code.
 - [ ] `app.aoki.jsapdu.router.resource.ControllerResource.java`
   - `POST /api/controller/sessions`
 
-#### WebSocket Layer
-- [ ] `app.aoki.jsapdu.router.websocket.CardhostWebSocket.java`
-  - Handle cardhost connections at `/ws/cardhost`
-  - Process registration messages
+#### WebSocket Layer (Flexible Implementation)
+- [ ] WebSocket handler for cardhosts
+  - Authenticate using public-key cryptography
+  - Process registration with UUID + public key
   - Handle APDU responses
   - Manage heartbeat
-- [ ] `app.aoki.jsapdu.router.websocket.ControllerWebSocket.java`
-  - Handle controller connections at `/ws/controller/{sessionId}`
-  - Route APDU requests to cardhosts
+- [ ] WebSocket handler for controllers
+  - Authenticate using public-key cryptography
+  - Route APDU requests to cardhosts (by UUID)
+  - Verify authorization based on public keys
   - Manage heartbeat
-- [ ] `app.aoki.jsapdu.router.websocket.MessageRouter.java`
+- [ ] Message routing logic
   - Route messages between controllers and cardhosts
   - Track active connections
   - Handle connection lifecycle
@@ -92,56 +100,53 @@ Implement the four main components with working code.
 - [ ] `src/main/resources/application.properties`
   - Database connection
   - WebSocket settings
+  - Public-key auth configuration
   - CORS configuration
   - Health checks
   - Metrics
 
-#### Testing
-- [ ] Unit tests for services
-- [ ] Integration tests for WebSocket handlers
-- [ ] REST API tests
-
-**Key Files to Create**:
-```
-examples/router/
-├── build.gradle
-├── settings.gradle
-├── src/main/
-│   ├── java/app/aoki/jsapdu/router/
-│   │   ├── websocket/
-│   │   ├── resource/
-│   │   ├── service/
-│   │   ├── entity/
-│   │   └── mapper/
-│   └── resources/
-│       ├── application.properties
-│       └── db/migration/
-└── src/test/
-```
+**Note**: Implementation structure should remain flexible based on actual needs.
 
 ---
 
-## 3. Cardhost Implementation (Priority: High)
+## 3. Cardhost with Integrated Monitor (Priority: High)
 
 **Status**: Package structure complete, code needed  
-**Estimated Time**: 60-90 minutes
+**Estimated Time**: 90-120 minutes (including monitor integration)
+
+### Key Changes from Original Plan
+- Monitor integrated into same process (not standalone)
+- No formal API between cardhost and monitor
+- Public-key cryptography for authentication
+- UUID + key pair storage
+- Monitor can be excluded at compile time
 
 ### Tasks
 
 #### Core Implementation
 - [ ] `src/index.ts` - Main entry point
-  - Load configuration
+  - Load configuration (UUID + keys)
   - Initialize platform (PC/SC or mock)
+  - Start integrated monitor if enabled
   - Connect to router
+  - Authenticate using public-key crypto
   - Start heartbeat loop
 
 - [ ] `src/config.ts` - Configuration management
   - Load UUID from file (or generate)
+  - Load key pair (or generate using Web Crypto API)
+  - Generate key pair using Web Crypto API
   - Parse environment variables
-  - Save UUID on first run
+  - Save UUID and keys on first run
+
+- [ ] `src/crypto.ts` - Web Crypto API wrappers
+  - Key pair generation
+  - Signing and verification
+  - Public key export/import
 
 - [ ] `src/router-client.ts` - WebSocket client
   - Connect to router
+  - Authenticate using public-key cryptography
   - Handle reconnection with exponential backoff
   - Send/receive messages
   - Heartbeat management
@@ -150,18 +155,24 @@ examples/router/
   - Wrap jsapdu-pcsc platform
   - Handle RPC requests
   - Send events to router
-  - UUID persistence
+  - UUID and key persistence
+
+#### Integrated Monitor Module
+- [ ] `src/monitor/index.ts` - Monitor module entry point
+  - Start HTTP server for UI (e.g., port 3001)
+  - Direct access to cardhost state (no API)
+  - Optional at compile time
+
+- [ ] `src/monitor/ui/` - Web UI files
+  - Simple HTML/CSS/JavaScript for dashboard
+  - Real-time updates using event emitters
+  - Display status, readers, metrics, events
 
 #### Mock Platform (for testing)
 - [ ] `src/mock-platform.ts` - Mock jsapdu platform
   - Simulate card readers
   - Generate fake responses
   - For testing without hardware
-
-#### Testing
-- [ ] Unit tests for configuration
-- [ ] Unit tests for message handling
-- [ ] Integration tests with mock platform
 
 **Dependencies to Add**:
 - `ws` - WebSocket client
@@ -174,8 +185,12 @@ examples/cardhost/
 ├── src/
 │   ├── index.ts
 │   ├── config.ts
+│   ├── crypto.ts (Web Crypto API)
 │   ├── router-client.ts
 │   ├── cardhost-service.ts
+│   ├── monitor/
+│   │   ├── index.ts
+│   │   └── ui/
 │   └── mock-platform.ts
 └── config.json (generated at runtime)
 ```
@@ -187,6 +202,10 @@ examples/cardhost/
 **Status**: Package structure complete, frontend needed  
 **Estimated Time**: 60-90 minutes
 
+### Key Changes from Original Plan
+- Public-key cryptography for authentication (Web Crypto API)
+- Public-key based peer discovery
+
 ### Tasks
 
 #### Decide on Frontend Framework
@@ -196,14 +215,18 @@ examples/cardhost/
 
 #### Core Implementation
 - [ ] `src/index.ts` - Main entry point
+- [ ] `src/crypto.ts` - Web Crypto API wrappers
+  - Key pair generation
+  - Signing and verification
 - [ ] `src/websocket-client.ts` - WebSocket client
   - Connect to router
+  - Authenticate using public-key cryptography
   - Handle reconnection
   - Send APDU requests
   - Receive responses
 - [ ] `src/api-client.ts` - REST API client
   - Create session
-  - List cardhosts
+  - List cardhosts (with public key info)
   - Get cardhost details
 - [ ] `src/app.ts` - Application logic
   - UI state management
@@ -213,97 +236,52 @@ examples/cardhost/
 #### UI Implementation
 - [ ] `public/index.html` - Main HTML structure
   - Connection panel
-  - Cardhost selection
+  - Cardhost selection (by UUID for addressing)
+  - Public key display/verification
   - APDU command builder
   - Response viewer
 - [ ] `public/styles.css` - Styling
-- [ ] Build system (Vite or webpack)
-
-#### Testing
-- [ ] Manual testing with router and cardhost
-- [ ] E2E test scenarios
+- [ ] Build system (Vite recommended)
 
 **Key Files to Create**:
 ```
 examples/controller/
 ├── src/
 │   ├── index.ts
+│   ├── crypto.ts (Web Crypto API)
 │   ├── websocket-client.ts
 │   ├── api-client.ts
 │   └── app.ts
 ├── public/
 │   ├── index.html
 │   └── styles.css
-└── vite.config.ts (or similar)
+└── vite.config.ts
 ```
+
+**Note**: Monitor is now integrated into cardhost, so section 5 is removed.
 
 ---
 
-## 5. Cardhost Monitor Implementation (Priority: Low)
-
-**Status**: Package structure complete, UI needed  
-**Estimated Time**: 45-60 minutes
-
-### Tasks
-
-#### Core Implementation
-- [ ] `src/index.ts` - Main entry point
-- [ ] `src/api-client.ts` - API client for cardhost
-- [ ] `src/monitor.ts` - Dashboard logic
-  - Fetch metrics
-  - Display status
-  - Show events
-
-#### UI Implementation
-- [ ] `public/index.html` - Dashboard HTML
-  - Status panel
-  - Readers panel
-  - Metrics charts
-  - Events log
-- [ ] `public/styles.css` - Styling
-- [ ] Consider using Chart.js for metrics visualization
-
-#### Integration
-- [ ] Cardhost needs to expose monitoring API
-  - `GET /api/status`
-  - `GET /api/readers`
-  - `GET /api/metrics`
-  - `GET /api/events`
-
-**Key Files to Create**:
-```
-examples/cardhost-monitor/
-├── src/
-│   ├── index.ts
-│   ├── api-client.ts
-│   └── monitor.ts
-└── public/
-    ├── index.html
-    └── styles.css
-```
-
----
-
-## 6. Integration & Testing
-
+## 5. Integration & Testing
 ### Integration Testing
 - [ ] Start router (with PostgreSQL)
-- [ ] Start cardhost (with mock platform)
+- [ ] Start cardhost with integrated monitor (with mock platform)
 - [ ] Start controller
-- [ ] Verify end-to-end APDU flow
+- [ ] Verify end-to-end APDU flow with public-key auth
 - [ ] Test connection recovery
 - [ ] Test multiple controllers
 - [ ] Test card events
+- [ ] Verify monitor UI shows correct status
 
 ### Documentation Updates
 - [ ] Update job notes with implementation progress
 - [ ] Document any design changes
-- [ ] Add troubleshooting tips
+- [ ] Add troubleshooting tips for public-key setup
 - [ ] Update README with actual usage instructions
 
 ---
 
-## 7. CI/CD Updates
+## 6. CI/CD Updates
 
 ### Update GitHub Actions Workflow
 - [ ] Enable actual builds (remove echo placeholders)
@@ -315,13 +293,12 @@ examples/cardhost-monitor/
 
 ## Implementation Order Recommendation
 
-1. **Shared** (verify only, already done)
-2. **Router** (core infrastructure)
-3. **Cardhost** (connects to router)
-4. **Controller** (uses router to access cardhost)
-5. **Monitor** (optional enhancement)
-6. **Integration Testing**
-7. **Documentation Updates**
+1. **Shared** (verify only, mostly done)
+2. **Router** (core infrastructure with public-key auth)
+3. **Cardhost** (with integrated monitor)
+4. **Controller** (with public-key auth)
+5. **Integration Testing**
+6. **Documentation Updates**
 
 ---
 
@@ -332,41 +309,39 @@ examples/cardhost-monitor/
 - WebSocket support: `quarkus-websockets`
 - Database: `quarkus-jdbc-postgresql`, `quarkus-flyway`
 - MyBatis: custom integration from template
-- JWT: `quarkus-smallrye-jwt`
+- **Public-key cryptography libraries** for Java
 
 ### Cardhost (Node.js)
 - `ws` - WebSocket client
 - `@aokiapp/jsapdu-interface` - Interface definitions
 - `@aokiapp/jsapdu-pcsc` - PC/SC implementation (if available)
+- **Web Crypto API** - Built-in to Node.js (crypto.subtle)
 - May need mock implementation if jsapdu-pcsc not accessible
 
 ### Controller (Browser)
 - Build tool: Vite recommended
-- No heavy framework needed for initial implementation
+- **Web Crypto API** - Native browser support
 - Native WebSocket API
-
-### Monitor (Browser)
-- Same as controller
-- Optional: Chart.js for visualizations
 
 ---
 
 ## Testing Strategy
 
 ### Unit Tests
-- Router: Service and mapper tests
-- Cardhost: Configuration and message handling
-- Controller: API client tests
+- Router: Service and mapper tests, crypto tests
+- Cardhost: Configuration, key management, message handling
+- Controller: API client tests, crypto tests
 - Shared: Utility function tests
 
 ### Integration Tests
 - Router: WebSocket handler tests with mock clients
-- End-to-end: Full flow with all components
+- End-to-end: Full flow with public-key authentication
 
 ### Manual Testing
 - Physical card reader (if available)
 - Mock mode (without hardware)
 - Connection recovery scenarios
+- Public-key authentication flows
 - Multiple concurrent users
 
 ---
@@ -374,32 +349,34 @@ examples/cardhost-monitor/
 ## Success Criteria
 
 By end of Session 2:
-- [ ] Router running and accepting WebSocket connections
-- [ ] Cardhost connecting to router and registering
-- [ ] Controller can list cardhosts and send APDU commands
-- [ ] APDU commands routed from controller → router → cardhost → card
-- [ ] Responses routed back: card → cardhost → router → controller
-- [ ] Basic error handling in place
+- [ ] Router running with public-key authentication
+- [ ] Cardhost connecting to router with public-key auth
+- [ ] Cardhost integrated monitor accessible
+- [ ] Controller can authenticate and list cardhosts
+- [ ] APDU commands routed with proper authorization
+- [ ] Public-key based peer identity working
+- [ ] UUID used only for addressing, not authentication
 - [ ] Documentation updated with implementation notes
-- [ ] CI builds successfully (may not have full tests yet)
+- [ ] CI builds successfully
 
 ---
 
-## Notes
+## Important Notes
 
-- Focus on getting a working end-to-end flow first
-- Add robustness and error handling incrementally
-- Monitor can be minimal or skipped if time is short
-- Testing is important but can be minimal for demo purposes
-- Documentation updates are crucial for next session
+- **Flexibility**: Implementation should adapt based on actual needs
+- **Public-key crypto**: Critical security feature, not optional
+- **Monitor integration**: Part of cardhost, not separate
+- **UUID role**: Addressing only, not authentication
+- **Documentation**: Keep updated with actual implementation decisions
 
 ## References
 
-All specifications completed in Session 1:
-- `docs/examples-architecture.md`
-- `docs/websocket-protocol.md`
-- `docs/router.md`
-- `docs/cardhost.md`
-- `docs/controller.md`
-- `examples/router/openapi/router-api.yaml`
+All specifications completed in Session 1 (revised):
+- `docs/examples-architecture.md` (updated)
+- `docs/websocket-protocol.md` (flexible/draft)
+- `docs/router.md` (updated)
+- `docs/cardhost.md` (updated with monitor integration)
+- `docs/controller.md` (updated)
+- `docs/cardhost-monitor.md` (updated for integration)
+- `examples/router/openapi/router-api.yaml` (draft)
 - `examples/shared/src/protocol.ts`

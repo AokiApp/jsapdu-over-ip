@@ -2,7 +2,7 @@
 
 ## Overview
 
-The examples directory demonstrates jsapdu-over-ip usage through a complete remote card access system with four main components that can be owned and operated by different parties.
+The examples directory demonstrates jsapdu-over-ip usage through a complete remote card access system with three main components that can be owned and operated by different parties.
 
 ## System Components
 
@@ -14,12 +14,13 @@ The examples directory demonstrates jsapdu-over-ip usage through a complete remo
 - Browser-based GUI for low-level APDU operations
 - Uses jsapdu-over-ip client interfaces
 - Connects to router via outbound connection (NAT-friendly)
-- Specifies target cardhost by UUID
+- Specifies target cardhost by UUID (UUID is for peer addressing, not security)
 - Interactive APDU command builder and response viewer
+- Public-key cryptography based authentication (Web Crypto API compliant)
 
-**Technology Stack**:
+**Technology Stack** (suggested, not prescriptive):
 - TypeScript
-- React or vanilla web technologies
+- Web technologies
 - jsapdu-over-ip client libraries
 - WebSocket client for real-time communication
 
@@ -27,27 +28,38 @@ The examples directory demonstrates jsapdu-over-ip usage through a complete remo
 
 ---
 
-### 2. Cardhost (TypeScript - Node.js Service)
+### 2. Cardhost with Integrated Monitor (TypeScript - Node.js Service)
 
-**Purpose**: Service that hosts physical card readers and executes remote APDU commands
+**Purpose**: Monolithic service that hosts physical card readers, executes remote APDU commands, and provides monitoring UI
 
 **Key Features**:
 - Manages physical card readers via jsapdu (PC/SC)
-- Persistent UUID for identification
+- UUID for peer addressing (persistent across restarts)
+- Public-key cryptography for mutual authentication and peer identity
 - Connects to router via outbound connection (NAT-friendly)
 - Executes APDU commands on behalf of remote controllers
 - Reports card insertion/removal events
+- Integrated monitoring web UI (same process, optional at compile time)
+- Public-key based peer discovery and management
 
-**Technology Stack**:
+**Technology Stack** (suggested, not prescriptive):
 - Node.js + TypeScript
 - jsapdu-pcsc for card reader access
 - jsapdu-over-ip server adapter
 - WebSocket client for router connection
+- Web Crypto API for cryptographic operations
 
-**UUID Persistence**:
-- Generated on first run and stored locally
-- Survives service restarts
-- 128-bit UUID (note: consider additional auth for production)
+**Security Model**:
+- UUID used only for peer addressing/routing, not authentication
+- Public-key cryptography for all authentication (Web Crypto API compliant)
+- Peer identity based on public keys, not UUIDs
+- Public-key based discovery and management for distributed system architecture
+
+**Monitor Integration**:
+- Runs in same process as cardhost (not standalone)
+- No formal API between cardhost and monitor modules
+- Efficient monolithic code with optional compile-time exclusion
+- Direct access to cardhost state and metrics
 
 ---
 
@@ -59,17 +71,18 @@ The examples directory demonstrates jsapdu-over-ip usage through a complete remo
 - Accepts inbound connections from controllers and cardhosts
 - Routes APDU requests/responses between parties
 - Maintains WebSocket connections for bidirectional communication
+- Public-key cryptography based peer authentication
 - Cardhost registration and discovery
-- Authentication and authorization (JWT)
+- Robust authentication and authorization
 - Metrics and health monitoring
 
-**Technology Stack**:
+**Technology Stack** (suggested, not prescriptive):
 - Quarkus 3.x (based on quarkus-crud template)
 - PostgreSQL for cardhost registry and state
 - Flyway for database migrations
 - MyBatis for SQL queries
 - SmallRye OpenAPI (OpenAPI-first design)
-- SmallRye JWT for authentication
+- Public-key cryptography for authentication (not limited to JWT)
 - SmallRye Health and Micrometer Prometheus
 - WebSocket support (quarkus-websockets)
 
@@ -80,78 +93,47 @@ The examples directory demonstrates jsapdu-over-ip usage through a complete remo
 
 ---
 
-### 4. Cardhost Monitor (TypeScript - Web UI)
-
-**Purpose**: Monitoring dashboard for cardhost owners
-
-**Key Features**:
-- Displays cardhost operational status
-- Shows connection state to router
-- Lists connected card readers
-- Presents metrics (uptime, APDU count, latency)
-- View logs and events
-- Can run in same process as cardhost or standalone
-
-**Technology Stack**:
-- TypeScript
-- Web framework (React/Vue/Svelte or vanilla)
-- Chart library for metrics visualization
-- WebSocket or polling for real-time updates
-
 ---
 
 ## Communication Architecture
 
-```
-┌─────────────┐         ┌─────────────┐         ┌─────────────┐
-│ Controller  │         │   Router    │         │  Cardhost   │
-│  (Browser)  │         │  (Quarkus)  │         │  (Node.js)  │
-│             │         │             │         │             │
-│  (behind    │◄───────►│   Public    │◄───────►│  (behind    │
-│   NAT)      │         │   Server    │         │   NAT)      │
-└─────────────┘         └─────────────┘         └─────────────┘
-     │                        │                        │
-     │ Outbound WS            │                        │ Outbound WS
-     │ Connect                │ Inbound Listener       │ Connect
-     │                        │                        │
-     └────────────────────────┴────────────────────────┘
-              jsapdu-over-ip protocol
-```
+Controllers and cardhosts connect to the router using outbound WebSocket connections (NAT-friendly). The router acts as a relay, routing APDU commands based on cardhost UUIDs. Public-key cryptography is used for mutual authentication.
 
 ### Connection Flow
 
 1. **Cardhost Registration**:
-   - Cardhost starts and connects to router (WebSocket)
-   - Sends registration message with UUID and capabilities
-   - Router stores cardhost in database
+   - Cardhost connects to router via WebSocket (outbound)
+   - Authenticates using public-key cryptography
+   - Sends registration with UUID (for addressing) and public key (for identity)
+   - Router stores cardhost information
    - Connection maintained with heartbeat
 
 2. **Controller Connection**:
-   - Controller opens browser application
-   - Connects to router (WebSocket)
-   - Authenticates (optional, depends on security model)
-   - Requests list of available cardhosts
+   - Controller connects to router via WebSocket (outbound)
+   - Authenticates using public-key cryptography (Web Crypto API)
+   - Requests available cardhosts
+   - Can discover peers based on public keys
 
 3. **APDU Routing**:
-   - Controller sends APDU command with target cardhost UUID
-   - Router forwards to appropriate cardhost connection
-   - Cardhost executes APDU on physical card
-   - Response routed back through router to controller
+   - Controller sends APDU command with target cardhost UUID (addressing)
+   - Router verifies authorization based on public keys
+   - Routes to cardhost, which executes on physical card
+   - Response routed back to controller
 
 ### Message Format
 
-Based on jsapdu-over-ip RPC protocol:
+The message format is flexible and can evolve. Below is one possible approach:
 
 ```typescript
-// RPC Request
+// Example RPC Request
 {
   id: string,          // Request ID for matching responses
   method: string,      // Method name (e.g., "platform.getDeviceInfo")
   params: any[],       // Method parameters
-  target?: string      // Target cardhost UUID (controller → router)
+  target?: string      // Target cardhost UUID (for addressing only)
 }
 
-// RPC Response
+// Example RPC Response
 {
   id: string,          // Matching request ID
   result?: any,        // Success result
@@ -161,49 +143,45 @@ Based on jsapdu-over-ip RPC protocol:
   }
 }
 
-// Event Notification
+// Example Event Notification
 {
   event: string,       // Event type (e.g., "cardInserted")
   data: any            // Event data
 }
 ```
 
+**Note**: This is an example format only. The actual protocol should remain fluid during development to accommodate requirements.
+
 ---
 
 ## Security Considerations
 
-### Authentication
-- JWT tokens for controller authentication (optional in demo)
-- Cardhost authentication via UUID + secret key
+### Robustness and security of Authn and Authz
+
+- **Public-key cryptography**: All authentication based on public-key cryptography (Web Crypto API compliant)
+- **Peer identity**: Based on public keys, not UUIDs
+- **Mutual authentication**: Both cardhosts and controllers authenticate to router
+- **UUID role**: Used only for peer addressing/routing, not for security or authentication
+- **Public-key discovery**: Peer discovery and management based on public keys for distributed system architecture
+- **No UUID-based security**: Changing a UUID file does not provide authentication or impersonation protection
+
+### Communication Security
 - TLS/WSS for all connections in production
-
-### Authorization
-- Controllers can only access cardhosts they have permission for
-- Rate limiting on APDU commands
 - APDU command validation and filtering
-
-### UUID Security
-- 128-bit UUID is relatively small for permanent tracking
-- Production systems should add:
-  - Additional authentication factors
-  - UUID rotation policies
-  - Access control lists
+- Rate limiting
 
 ---
 
 ## Monorepo Structure
+
+**Note**: This structure is an example and not prescriptive. Adapt as needed during implementation.
 
 ```
 examples/
 ├── controller/
 │   ├── package.json
 │   ├── tsconfig.json
-│   ├── src/
-│   │   ├── index.ts
-│   │   ├── App.tsx (or vanilla)
-│   │   └── websocket-client.ts
-│   └── public/
-│       └── index.html
+│   └── src/
 │
 ├── cardhost/
 │   ├── package.json
@@ -218,46 +196,43 @@ examples/
 ├── router/
 │   ├── build.gradle
 │   ├── settings.gradle
-│   ├── openapi/
-│   │   └── router-api.yaml
-│   ├── src/main/
-│   │   ├── java/
-│   │   │   └── app/aoki/jsapdu/router/
-│   │   │       ├── websocket/
-│   │   │       ├── resource/
-│   │   │       ├── service/
-│   │   │       └── entity/
-│   │   └── resources/
-│   │       ├── application.properties
-│   │       └── db/migration/
-│   └── src/test/
-│
-├── cardhost-monitor/
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── src/
-│   │   ├── index.ts
-│   │   ├── Monitor.tsx
-│   │   └── api-client.ts
-│   └── public/
-│
-├── shared/
+├── cardhost/
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── src/
-│       ├── types.ts (shared interfaces)
-│       └── protocol.ts (message definitions)
+│       ├── index.ts (main cardhost service)
+│       ├── cardhost-service.ts
+│       ├── monitor/ (integrated monitoring UI, optional at compile time)
+│       │   ├── index.ts
+│       │   └── ui/
+│       └── crypto.ts (Web Crypto API wrappers)
+│
+├── router/
+│   ├── build.gradle
+│   ├── openapi/
+│   │   └── router-api.yaml
+│   └── src/main/
+│       ├── java/app/aoki/jsapdu/router/
+│       └── resources/
+│
+├── shared/
+│   ├── package.json
+│   └── src/
+│       ├── types.ts
+│       └── protocol.ts
 │
 ├── package.json (workspace root)
 └── turbo.json
 ```
+
+**Note**: Cardhost-monitor is integrated into cardhost as a module, not a separate component. The directory structure should reflect this integration.
 
 ---
 
 ## Development Workflow
 
 ### Prerequisites
-- Node.js 20+ for TypeScript components
+- Node.js 23+ for TypeScript components (current stable)
 - Java 21+ for router
 - PostgreSQL 15+ for router database
 - Card reader hardware for cardhost (or mock mode)
@@ -274,69 +249,17 @@ npm run build
 npm run dev
 ```
 
-### Individual Component Development
-
-```bash
-# Controller
-cd examples/controller
-npm run dev
-
-# Cardhost
-cd examples/cardhost
-npm run dev
-
-# Router
-cd examples/router
-./gradlew quarkusDev
-
-# Monitor
-cd examples/cardhost-monitor
-npm run dev
-```
-
 ---
 
 ## CI/CD
 
-### Build Pipeline
-- Lint all TypeScript code
-- Build all TypeScript packages
-- Build router (Quarkus)
-- Run unit tests
-- Run integration tests
-
-### Deployment
-- Controller: Static site to CDN
-- Cardhost: Packaged executable or Docker
-- Router: Container image via Jib
-- Monitor: Embedded in cardhost or separate deployment
-
----
-
-## Testing Strategy
-
-### Unit Tests
-- Individual component logic
-- Protocol message handling
-- UUID generation and persistence
-
-### Integration Tests
-- Controller ↔ Router communication
-- Cardhost ↔ Router communication
-- APDU routing end-to-end
-
-### E2E Tests
-- Full system with mock cards
-- Connection recovery
-- Multiple concurrent controllers
+CI builds and tests all components. See `.github/workflows/examples-ci.yml` for details.
 
 ---
 
 ## Future Enhancements
 
-- Web-based cardhost-monitor with real-time updates
-- Multiple router clustering for high availability
-- Advanced security (OAuth, mTLS)
-- APDU command history and replay
-- Card session recording
-- Performance monitoring and tracing
+- Robustness and security of Authn and Authz
+- Advanced public-key based peer discovery
+- Multi-router clustering
+- Enhanced monitoring capabilities

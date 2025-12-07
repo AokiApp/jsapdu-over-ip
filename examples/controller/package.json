@@ -15,7 +15,7 @@
     "apdu"
   ],
   "author": "AokiApp",
-  "license": "MIT",
+  "license": "ANAL-Tight",
   "dependencies": {
     "@aokiapp/jsapdu-over-ip": "workspace:*",
     "@aokiapp/jsapdu-over-ip-examples-shared": "workspace:*"

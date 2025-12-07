@@ -99,8 +99,9 @@ npm run clean
 ## Security Considerations
 
 - Controller should use WSS (secure WebSocket) in production
-- Implement user authentication (JWT)
-- Validate cardhost access permissions
+- Public-key cryptography for authentication (Web Crypto API compliant)
+- Public-key based peer discovery and management
+- Validate cardhost access permissions based on public keys
 - Rate limit APDU commands
 - Log all operations for audit trail
 
