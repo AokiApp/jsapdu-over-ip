@@ -84,12 +84,21 @@ public class ControllerWebSocket {
                     String targetUuid = data.get("target").asText();
                     JsonNode request = data.get("request");
                     
+                    // Extract request ID for tracking
+                    String requestId = request.get("id").asText();
+                    String controllerSessionId = sessionToId.get(session.getId());
+                    
                     // Create message to send to cardhost
                     RouterMessage cardhostMessage = new RouterMessage(RouterMessage.RPC_REQUEST, request);
                     String cardhostMessageStr = objectMapper.writeValueAsString(cardhostMessage);
                     
-                    // Route to cardhost
-                    boolean routed = messageRouter.routeToCardhost(targetUuid, cardhostMessageStr);
+                    // Route to cardhost with tracking
+                    boolean routed = messageRouter.routeToCardhost(
+                        targetUuid, 
+                        controllerSessionId, 
+                        requestId, 
+                        cardhostMessageStr
+                    );
                     
                     if (!routed) {
                         // Send error back to controller

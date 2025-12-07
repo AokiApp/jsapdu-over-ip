@@ -66,27 +66,23 @@ public class CardhostWebSocket {
                 }
                 
                 case RouterMessage.RPC_RESPONSE: {
-                    // Route response back to controller
-                    // Extract request ID to determine which controller to route to
+                    // Route response back to controller using request ID
                     JsonNode data = node.get("data");
                     String requestId = data.get("id").asText();
                     
-                    // TODO: Track which controller sent each request
-                    // For now, broadcast to all controllers targeting this cardhost
-                    String cardhostUuid = sessionToUuid.get(session.getId());
-                    if (cardhostUuid != null) {
-                        // Forward to all controllers (simplified routing)
-                        System.out.println("[CardhostWebSocket] Routing response from " + cardhostUuid);
+                    // Use MessageRouter to route response to correct controller
+                    boolean routed = messageRouter.routeResponseToController(requestId, message);
+                    if (!routed) {
+                        System.err.println("[CardhostWebSocket] Failed to route response for request: " + requestId);
                     }
                     break;
                 }
                 
                 case RouterMessage.RPC_EVENT: {
-                    // Forward events to all controllers connected to this cardhost
+                    // Broadcast events to all controllers connected to this cardhost
                     String cardhostUuid = sessionToUuid.get(session.getId());
                     if (cardhostUuid != null) {
-                        System.out.println("[CardhostWebSocket] Event from " + cardhostUuid);
-                        // TODO: Broadcast to relevant controllers
+                        messageRouter.broadcastEventToControllers(cardhostUuid, message);
                     }
                     break;
                 }
