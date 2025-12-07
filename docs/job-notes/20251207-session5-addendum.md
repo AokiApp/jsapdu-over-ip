@@ -99,23 +99,31 @@ The issue has been updated with a new section on authentication and encryption:
 ## Action Items for Next Session
 
 ### High Priority (Must Do)
-1. Implement `/api/cardhosts/{uuid}` endpoint
-2. Implement `/api/controller/sessions` endpoint
-3. Implement `/healthz` endpoint
-4. Integrate with router template's OpenAPI structure
-5. Define proper response schemas
+1. ✅ ~~Implement `/api/cardhosts/{uuid}` endpoint~~ - DONE
+2. ✅ ~~Implement `/api/controller/sessions` endpoint~~ - DONE
+3. ✅ ~~Implement `/healthz` endpoint~~ - DONE
+4. ❌ Integrate with router template's OpenAPI structure (paths/, components/, schemas/)
+5. ❌ Implement authentication system per issue #2 requirements
+6. ❌ Add session token management for HTTP → WebSocket upgrade
 
 ### Medium Priority (Should Do)
-6. Add session management logic
-7. Add cardhost status tracking
-8. Add authentication layer for REST endpoints
-9. Test REST API functionality
+7. ❌ Design and implement end-to-end encryption architecture
+8. ❌ Add proper response schema validation
+9. ❌ Implement challenge-response authentication for cardhosts
+10. ❌ Add bearer token authentication for controllers
+11. ❌ Test REST API functionality
 
 ### Low Priority (Nice to Have)
-10. Add rate limiting
-11. Add request validation
-12. Add metrics endpoints
-13. Add logging improvements
+12. ❌ Add rate limiting
+13. ❌ Add request validation middleware
+14. ❌ Add metrics endpoints
+15. ❌ Add detailed logging for debugging
+16. ❌ Add session expiration and cleanup
+
+### Research Tasks
+- Study modern E2E encryption protocols suitable for this use case
+- Investigate TLS alternatives for E2E encryption with party auth
+- Research (EC)DHE + session key implementation patterns
 
 ## Revised Architecture Understanding
 
