@@ -88,13 +88,17 @@ export class SmartCardPlatformAdapter {
         for (const card of this.cards.values()) {
           try {
             await card.release();
-          } catch {}
+          } catch {
+            // Ignore errors during release
+          }
         }
         this.cards.clear();
         for (const device of this.devices.values()) {
           try {
             await device.release();
-          } catch {}
+          } catch {
+            // Ignore errors during release
+          }
         }
         this.devices.clear();
         this.deviceHandleToId.clear();
@@ -183,14 +187,14 @@ export class SmartCardPlatformAdapter {
           cmdSerialized.le,
         );
         const resp = await card.transmit(cmd);
-        return this.serializeResponseApdu(resp as ResponseApdu);
+        return this.serializeResponseApdu(resp);
       }
 
       case "card.transmitRaw": {
         const card = this.getCard(params[0] as string);
         const rawCmd = new Uint8Array(params[1] as number[]);
         const resp = await card.transmit(rawCmd);
-        return Array.from(resp as Uint8Array);
+        return Array.from(resp);
       }
 
       case "card.reset": {
@@ -238,8 +242,8 @@ export class SmartCardPlatformAdapter {
       supportsHce: info.supportsHce,
       isIntegratedDevice: info.isIntegratedDevice,
       isRemovableDevice: info.isRemovableDevice,
-      d2cProtocol: info.d2cProtocol as SerializedDeviceInfo["d2cProtocol"],
-      p2dProtocol: info.p2dProtocol as SerializedDeviceInfo["p2dProtocol"],
+      d2cProtocol: info.d2cProtocol,
+      p2dProtocol: info.p2dProtocol,
       apduApi: info.apduApi,
       antennaInfo: info.antennaInfo as SerializedDeviceInfo["antennaInfo"],
     };

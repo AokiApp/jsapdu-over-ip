@@ -120,8 +120,16 @@ export class RemoteSmartCard extends SmartCard {
     await this.call<void>("card.release");
 
     // Notify parent device
-    const device = this.parentDevice as any;
-    if (device.untrackCard) {
+    const device = this.parentDevice;
+    if (
+      device &&
+      "untrackCard" in device &&
+      typeof device.untrackCard === "function"
+    ) {
+      // untrackCardはrnなど一部実装にoptionalでついているものをアドホックに呼び出している
+      // その際に型に依存せずfunctionであることだけを確認して呼び出す
+      // そうすると型情報がない呼び出しは危険だとされるが、まあどうしようもないよね。握り潰します。
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       device.untrackCard(this.cardHandle);
     }
   }

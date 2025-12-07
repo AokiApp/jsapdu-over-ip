@@ -67,7 +67,23 @@ export class FetchClientTransport implements ClientTransport {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
     });
-    return response.json();
+    const result = (await response.json()) as unknown;
+
+    // check if result is RpcResponse
+    const checkIfRpcResponse = (obj: unknown): obj is RpcResponse => {
+      return (
+        typeof obj === "object" &&
+        obj !== null &&
+        "id" in obj &&
+        typeof (obj as RpcResponse).id === "string" &&
+        ("result" in obj || "error" in obj) &&
+        (!("error" in obj) || typeof (obj as RpcResponse).error?.code === "string")
+      );
+    };
+    if (!checkIfRpcResponse(result)) {
+      throw new Error("Invalid RpcResponse format");
+    }
+    return result;
   }
 }
 

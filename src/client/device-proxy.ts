@@ -116,6 +116,7 @@ export class RemoteSmartCardDevice extends SmartCardDevice {
   /**
    * HCEセッションを開始（ネットワーク越しでは未サポート）
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   async startHceSession(): Promise<EmulatedCard> {
     throw new SmartCardError(
       "UNSUPPORTED_OPERATION",
@@ -142,8 +143,20 @@ export class RemoteSmartCardDevice extends SmartCardDevice {
     this._sessionActive = false;
 
     // Notify parent platform
-    const platform = this.parentPlatform as any;
-    if (platform.untrackDevice) {
+    // const platform = this.parentPlatform as any;
+    // if (platform.untrackDevice) {
+    //   platform.untrackDevice(this._deviceInfo.id, this.deviceHandle);
+    // }
+    const platform = this.parentPlatform;
+    if (
+      platform &&
+      "untrackDevice" in platform &&
+      typeof platform.untrackDevice === "function"
+    ) {
+      // untrackDeviceはrnなど一部実装にoptionalでついているものをアドホックに呼び出している
+      // その際に型に依存せずfunctionであることだけを確認して呼び出す
+      // そうすると型情報がない呼び出しは危険だとされるが、まあどうしようもないよね。握り潰します。
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       platform.untrackDevice(this._deviceInfo.id, this.deviceHandle);
     }
   }
@@ -153,7 +166,11 @@ export class RemoteSmartCardDevice extends SmartCardDevice {
    */
   untrackCard(cardHandle: string): void {
     this.cards.delete(cardHandle);
-    if (this.card && (this.card as any).cardHandle === cardHandle) {
+    if (
+      this.card &&
+      "cardHandle" in this.card &&
+      this.card.cardHandle === cardHandle
+    ) {
       this.card = null;
     }
   }
