@@ -1,0 +1,28 @@
+{
+  "name": "@aokiapp/jsapdu-over-ip-examples-controller",
+  "version": "0.1.0",
+  "description": "Browser-based controller for remote APDU operations",
+  "type": "module",
+  "scripts": {
+    "build": "echo 'Build not yet implemented'",
+    "dev": "echo 'Dev server not yet implemented'",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "jsapdu",
+    "controller",
+    "apdu"
+  ],
+  "author": "AokiApp",
+  "license": "ANAL-Tight",
+  "dependencies": {
+    "@aokiapp/jsapdu-over-ip": "workspace:*",
+    "@aokiapp/jsapdu-over-ip-examples-shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@aokiapp/jsapdu-interface": "^0.0.2",
+    "rimraf": "^5.0.10",
+    "typescript": "^5.9.3"
+  }
+}

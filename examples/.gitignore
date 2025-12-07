@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+dist/
+build/
+*.tgz
+
+# TypeScript
+*.tsbuildinfo
+
+# Java/Gradle (router)
+router/.gradle/
+router/build/
+router/bin/
+router/.settings/
+router/.classpath
+router/.project
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Configuration (may contain secrets)
+config.json
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+.turbo/
