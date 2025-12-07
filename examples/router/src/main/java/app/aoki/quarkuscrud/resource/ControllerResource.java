@@ -1,5 +1,6 @@
 package app.aoki.quarkuscrud.resource;
 
+import app.aoki.quarkuscrud.crypto.SessionTokenManager;
 import app.aoki.quarkuscrud.model.ControllerSession;
 import app.aoki.quarkuscrud.model.CreateSessionRequest;
 import jakarta.inject.Inject;
@@ -23,6 +24,9 @@ import java.util.UUID;
 public class ControllerResource {
     
     @Inject
+    SessionTokenManager sessionTokenManager;
+    
+    @Inject
     @ConfigProperty(name = "quarkus.http.host", defaultValue = "localhost")
     String host;
     
@@ -33,7 +37,7 @@ public class ControllerResource {
     /**
      * Create controller session
      * POST /api/controller/sessions
-     * TODO: Add authentication before allowing session creation
+     * TODO: Add bearer token authentication before allowing session creation
      */
     @POST
     @Path("/sessions")
@@ -46,13 +50,16 @@ public class ControllerResource {
         // Generate session ID
         String sessionId = UUID.randomUUID().toString();
         
+        // Generate single-use session token for WebSocket upgrade
+        String sessionToken = sessionTokenManager.generateToken(sessionId);
+        
         // Calculate expiration (24 hours from now)
         Instant expiresAt = Instant.now().plus(24, ChronoUnit.HOURS);
         
-        // Build WebSocket URL from request context
+        // Build WebSocket URL with session token as query parameter
         String scheme = uriInfo.getBaseUri().getScheme().equals("https") ? "wss" : "ws";
-        String wsUrl = String.format("%s://%s:%s/ws/controller/%s", 
-            scheme, host, port, sessionId);
+        String wsUrl = String.format("%s://%s:%s/ws/controller/%s?token=%s", 
+            scheme, host, port, sessionId, sessionToken);
         
         // Create session response
         ControllerSession session = new ControllerSession();

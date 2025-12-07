@@ -39,6 +39,9 @@ dependencies {
     // Observability: Metrics (Micrometer + Prometheus)
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
     
+    // Scheduler for background tasks
+    implementation 'io.quarkus:quarkus-scheduler'
+    
     // Swagger annotations for generated API code
     implementation 'io.swagger:swagger-annotations:1.6.14'
     
