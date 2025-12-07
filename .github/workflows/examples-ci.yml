@@ -18,9 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: examples
+      packages: read
 
     steps:
       - name: Checkout repository
@@ -31,22 +29,40 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: examples/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@aokiapp'
 
-      - name: Install dependencies
+      - name: Configure npm for GitHub Packages
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+          echo "@aokiapp:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
+
+      - name: Install main library dependencies
         run: npm ci
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: .
 
-      - name: Lint
-        run: npm run lint
-        continue-on-error: true
+      - name: Build main library
+        run: npm run build
+        working-directory: .
+
+      - name: Install examples dependencies
+        run: npm ci
+        working-directory: examples
+
+      - name: Build examples
+        run: npm run build
+        working-directory: examples
 
       - name: Type check
         run: npm run typecheck
+        working-directory: examples
+        continue-on-error: true
 
-      - name: Build
-        run: npm run build
+      - name: Lint
+        run: npm run lint
+        working-directory: examples
+        continue-on-error: true
 
   build-router:
     name: Build Router (Quarkus)

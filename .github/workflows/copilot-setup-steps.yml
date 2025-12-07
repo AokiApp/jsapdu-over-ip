@@ -1,0 +1,58 @@
+name: "Copilot Setup Steps"
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@aokiapp'
+
+      - name: Configure npm for GitHub Packages
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+          echo "@aokiapp:registry=https://npm.pkg.github.com" >> ~/.npmrc
+
+      - name: Install main library dependencies
+        run: npm ci
+
+      - name: Build main library
+        run: npm run build
+
+      - name: Install and build examples
+        run: |
+          cd examples
+          npm ci
+          npm run build
+
+      - name: Set up Java for router
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Build router
+        run: |
+          cd examples/router
+          ./gradlew build -x test
