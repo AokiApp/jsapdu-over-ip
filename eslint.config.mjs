@@ -23,6 +23,7 @@ export default tseslint.config(
       "local-packages/**",
       ".turbo/**",
       "eslint.config.mjs",
+      "tests/**/*",
     ],
   },
 );
