@@ -93,37 +93,46 @@ The issue has been updated with a new section on authentication and encryption:
 7. End-to-end testing (blocked by npm auth, but also not attempted)
 
 ### Revised Completion Estimate
-- **Router Infrastructure:** ~60% complete (WebSocket + basic REST done, auth/template integration incomplete)
-- **Overall Examples:** ~65% complete (cardhost/controller done, router needs more work)
+- **Router Infrastructure:** ~75% complete (WebSocket + REST APIs done, auth/E2E encryption incomplete)
+- **Overall Examples:** ~70% complete (cardhost/controller done, router mostly done, auth pending)
 
 ## Action Items for Next Session
 
 ### High Priority (Must Do)
-1. ✅ ~~Implement `/api/cardhosts/{uuid}` endpoint~~ - DONE
-2. ✅ ~~Implement `/api/controller/sessions` endpoint~~ - DONE
-3. ✅ ~~Implement `/healthz` endpoint~~ - DONE
-4. ❌ Integrate with router template's OpenAPI structure (paths/, components/, schemas/)
-5. ❌ Implement authentication system per issue #2 requirements
-6. ❌ Add session token management for HTTP → WebSocket upgrade
+1. ✅ ~~Implement `/api/cardhosts/{uuid}` endpoint~~ - DONE (commit 31f7274)
+2. ✅ ~~Implement `/api/controller/sessions` endpoint~~ - DONE (commit 31f7274)
+3. ✅ ~~Implement `/healthz` endpoint~~ - DONE (commit 31f7274)
+4. ✅ ~~Integrate with router template's OpenAPI structure~~ - DONE (commit 11a7e29)
+5. ✅ ~~Remove unused template code~~ - DONE (commit 11a7e29)
+6. ❌ Implement authentication system per issue #2 requirements
+7. ❌ Add session token management for HTTP → WebSocket upgrade
 
 ### Medium Priority (Should Do)
-7. ❌ Design and implement end-to-end encryption architecture
-8. ❌ Add proper response schema validation
-9. ❌ Implement challenge-response authentication for cardhosts
-10. ❌ Add bearer token authentication for controllers
-11. ❌ Test REST API functionality
+8. ❌ Design and implement end-to-end encryption architecture
+9. ❌ Add proper response schema validation
+10. ❌ Implement challenge-response authentication for cardhosts
+11. ❌ Add bearer token authentication for controllers
+12. ❌ Test REST API functionality
 
 ### Low Priority (Nice to Have)
-12. ❌ Add rate limiting
-13. ❌ Add request validation middleware
-14. ❌ Add metrics endpoints
-15. ❌ Add detailed logging for debugging
-16. ❌ Add session expiration and cleanup
+13. ❌ Add rate limiting
+14. ❌ Add request validation middleware
+15. ❌ Add metrics endpoints
+16. ❌ Add detailed logging for debugging
+17. ❌ Add session expiration and cleanup
 
 ### Research Tasks
 - Study modern E2E encryption protocols suitable for this use case
 - Investigate TLS alternatives for E2E encryption with party auth
 - Research (EC)DHE + session key implementation patterns
+
+### Completed This Session
+- ✅ REST API endpoints implementation
+- ✅ OpenAPI spec properly structured following template patterns
+- ✅ Removed all unused template code (entities, mappers, services)
+- ✅ Removed database dependencies (MyBatis, Flyway, PostgreSQL)
+- ✅ Fixed JSON serialization and input validation issues
+- ✅ Clean build with only necessary dependencies
 
 ## Revised Architecture Understanding
 
