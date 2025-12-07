@@ -13,26 +13,10 @@
 import { SmartCardPlatformAdapter } from "@aokiapp/jsapdu-over-ip/server";
 import { MockSmartCardPlatform } from "@aokiapp/jsapdu-over-ip-examples-test-utils";
 import { RouterServerTransport, type RouterServerTransportConfig } from "./router-transport.js";
-import { randomUUID, webcrypto } from "crypto";
-
-/**
- * Generate a simple mock key pair for testing
- * In production cardhost, keys are persisted in config
- */
-async function generateMockKeyPair(): Promise<{
-  publicKey: webcrypto.CryptoKey;
-  privateKey: webcrypto.CryptoKey;
-}> {
-  const keyPair = await webcrypto.subtle.generateKey(
-    {
-      name: "ECDSA",
-      namedCurve: "P-256",
-    },
-    true,
-    ["sign", "verify"]
-  );
-  return keyPair;
-}
+import { randomUUID } from "crypto";
+import { getOrCreateKeyPair, getKeyFingerprint } from "./key-manager.js";
+import { join } from "path";
+import { homedir } from "os";
 
 async function main() {
   console.log("=== Mock Cardhost Starting (TEST ONLY) ===");
@@ -43,15 +27,21 @@ async function main() {
   // Get config from environment or use defaults
   const routerUrl = process.env.ROUTER_URL || 'ws://localhost:8080/ws/cardhost';
   const uuid = process.env.CARDHOST_UUID || `mock-cardhost-${randomUUID()}`;
+  
+  // Key path: use XDG_CONFIG_HOME or ~/.config
+  const configDir = process.env.XDG_CONFIG_HOME || join(homedir(), '.config');
+  const keyPath = process.env.CARDHOST_KEY_PATH || join(configDir, 'jsapdu-cardhost-mock', 'keys', 'cardhost');
 
   console.log(`Router URL: ${routerUrl}`);
   console.log(`Cardhost UUID: ${uuid}`);
+  console.log(`Key path: ${keyPath}`);
   console.log();
 
-  // Generate mock key pair
-  console.log("Generating mock key pair...");
-  const keyPair = await generateMockKeyPair();
-  console.log("✅ Mock key pair generated");
+  // Get or create persistent key pair (per Issue #2 requirement)
+  console.log("Loading persistent key pair...");
+  const keyPair = await getOrCreateKeyPair(keyPath);
+  const fingerprint = await getKeyFingerprint(keyPair.publicKey);
+  console.log(`✅ Key pair loaded (fingerprint: ${fingerprint})`);
   console.log();
 
   // Initialize mock platform (test only!)
@@ -98,15 +88,25 @@ async function main() {
   // Graceful shutdown
   const shutdown = async () => {
     console.log("\n=== Mock Cardhost Shutting Down ===");
+    
+    // Stop adapter first
     try {
       await adapter.stop();
-      await platform.release();
-      console.log("✅ Shutdown complete");
-      process.exit(0);
+      console.log("✅ Adapter stopped");
     } catch (error) {
-      console.error("❌ Shutdown error:", error);
-      process.exit(1);
+      console.error("❌ Adapter stop error:", error);
     }
+    
+    // Release platform
+    try {
+      await platform.release();
+      console.log("✅ Platform released");
+    } catch (error) {
+      console.error("❌ Platform release error:", error);
+    }
+    
+    console.log("✅ Shutdown complete");
+    process.exit(0);
   };
 
   process.on("SIGINT", shutdown);
