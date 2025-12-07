@@ -142,7 +142,8 @@ describe('parseApduHex', () => {
 
   describe('エッジケース (Edge Cases)', () => {
     test('Maximum length data (255 bytes)', () => {
-      const dataBytes = Array(255).fill(0xFF).map((v, i) => i.toString(16).padStart(2, '0')).join('');
+      // Create 255 bytes of sequential data (00, 01, 02, ..., FE)
+      const dataBytes = Array.from({length: 255}, (_, i) => i.toString(16).padStart(2, '0')).join('');
       const apduHex = `00A40400FF${dataBytes}`;
       
       const result = parseApduHex(apduHex);
