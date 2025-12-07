@@ -11,8 +11,35 @@ This directory contains example implementations demonstrating how to use jsapdu-
 - ✅ Cardhost implementation using SmartCardPlatformAdapter
 - ✅ Controller implementation using RemoteSmartCardPlatform (React)
 - ✅ Router WebSocket implementation (Java/Quarkus)
+- ✅ Authentication system (challenge-response + session tokens)
+- ✅ Exception handling and metrics
 - ✅ All components build successfully
 - ⏳ End-to-end testing in progress
+- ⏳ End-to-end encryption (future enhancement)
+
+## Security Features
+
+The router implements a comprehensive authentication system:
+
+### Cardhost Authentication
+- **Challenge-Response Protocol**: ECDSA signature-based authentication
+- **Public Key Infrastructure**: Each cardhost has a fixed ECDSA P-256 key pair
+- **Flow**:
+  1. Cardhost sends auth-request with UUID and public key
+  2. Router generates challenge nonce
+  3. Cardhost signs nonce with private key
+  4. Router verifies signature and registers cardhost
+
+### Controller Authentication
+- **Session Tokens**: Single-use tokens for WebSocket upgrade
+- **Time-Limited**: Tokens expire after 5 minutes
+- **Flow**:
+  1. Controller requests session via REST API
+  2. Router generates session ID and token
+  3. Controller connects to WebSocket with token
+  4. Token is consumed and validated
+
+See `docs/security-architecture.md` for complete security design.
 
 ## Architecture
 
