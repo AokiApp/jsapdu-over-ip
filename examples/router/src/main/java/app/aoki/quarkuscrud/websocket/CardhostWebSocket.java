@@ -1,5 +1,9 @@
 package app.aoki.quarkuscrud.websocket;
 
+import app.aoki.quarkuscrud.model.CardhostInfo;
+import app.aoki.quarkuscrud.service.CardhostService;
+import app.aoki.quarkuscrud.usecase.RegisterCardhostUseCase;
+import app.aoki.quarkuscrud.usecase.RouteRpcMessageUseCase;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.websockets.next.OnOpen;
 import io.quarkus.websockets.next.OnTextMessage;
@@ -10,18 +14,23 @@ import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 /**
- * WebSocket endpoint for cardhost connections
- * Cardhosts connect here and register with their UUID
+ * WebSocket adapter for cardhost connections.
  * 
- * Note: Quarkus WebSockets Next creates one instance per connection,
- * so instance variables are connection-scoped.
+ * This is the adapter/interface layer - translates WebSocket protocol to domain operations.
+ * Thin layer that delegates to use cases.
  */
 @WebSocket(path = "/ws/cardhost")
 public class CardhostWebSocket {
     private static final Logger LOG = Logger.getLogger(CardhostWebSocket.class);
     
     @Inject
-    RoutingService routingService;
+    RegisterCardhostUseCase registerCardhostUseCase;
+    
+    @Inject
+    RouteRpcMessageUseCase routeRpcMessageUseCase;
+    
+    @Inject
+    CardhostService cardhostService;
     
     @Inject
     ObjectMapper objectMapper;
@@ -31,7 +40,7 @@ public class CardhostWebSocket {
     
     @OnOpen
     public void onOpen(WebSocketConnection connection) {
-        LOG.infof("Cardhost WebSocket connection opened: %s", connection.id());
+        LOG.infof("Cardhost connection opened: %s", connection.id());
     }
     
     @OnTextMessage
@@ -41,46 +50,58 @@ public class CardhostWebSocket {
             
             // Handle authentication message
             if ("auth-success".equals(rpcMessage.getType())) {
-                // Extract UUID and public key from auth success message
-                // Simplified authentication - in production, verify signatures
-                if (rpcMessage.getData() != null && rpcMessage.getData().has("uuid")) {
-                    cardhostUuid = rpcMessage.getData().get("uuid").asText();
-                    String publicKey = rpcMessage.getData().has("publicKey") 
-                        ? rpcMessage.getData().get("publicKey").asText() 
-                        : "";
-                    
-                    routingService.registerCardhost(cardhostUuid, connection, publicKey);
-                    
-                    // Send confirmation using ObjectMapper to prevent JSON injection
-                    RpcMessage confirmationMsg = new RpcMessage();
-                    confirmationMsg.setType("registered");
-                    var data = objectMapper.createObjectNode();
-                    data.put("uuid", cardhostUuid);
-                    confirmationMsg.setData(data);
-                    
-                    connection.sendTextAndAwait(objectMapper.writeValueAsString(confirmationMsg));
-                    LOG.infof("Cardhost authenticated: %s", cardhostUuid);
-                }
+                handleAuthentication(connection, rpcMessage);
                 return;
             }
             
-            // Route responses and events to controllers
+            // Route responses/events to controllers
             if (cardhostUuid != null) {
-                routingService.routeToControllers(cardhostUuid, message);
+                routeRpcMessageUseCase.routeToControllers(cardhostUuid, message);
             } else {
                 LOG.warn("Received message from unauthenticated cardhost");
             }
             
         } catch (Exception e) {
-            LOG.errorf(e, "Error processing cardhost message: %s", message);
+            LOG.errorf(e, "Error processing cardhost message");
         }
     }
     
     @OnClose
     public void onClose(WebSocketConnection connection) {
         if (cardhostUuid != null) {
-            routingService.unregisterCardhost(cardhostUuid);
+            cardhostService.unregisterCardhost(cardhostUuid);
         }
-        LOG.infof("Cardhost WebSocket connection closed: %s", connection.id());
+        LOG.infof("Cardhost connection closed: %s", connection.id());
+    }
+    
+    private void handleAuthentication(WebSocketConnection connection, RpcMessage authMessage) {
+        try {
+            if (authMessage.getData() == null || !authMessage.getData().has("uuid")) {
+                LOG.warn("Authentication message missing UUID");
+                return;
+            }
+            
+            String uuid = authMessage.getData().get("uuid").asText();
+            String publicKey = authMessage.getData().has("publicKey") 
+                ? authMessage.getData().get("publicKey").asText() 
+                : "";
+            
+            // Execute use case
+            CardhostInfo info = registerCardhostUseCase.execute(uuid, publicKey, connection);
+            cardhostUuid = uuid;
+            
+            // Send confirmation (WebSocket-specific response)
+            RpcMessage confirmationMsg = new RpcMessage();
+            confirmationMsg.setType("registered");
+            var data = objectMapper.createObjectNode();
+            data.put("uuid", uuid);
+            confirmationMsg.setData(data);
+            
+            connection.sendTextAndAwait(objectMapper.writeValueAsString(confirmationMsg));
+            LOG.infof("Cardhost authenticated: %s", uuid);
+            
+        } catch (Exception e) {
+            LOG.errorf(e, "Error handling cardhost authentication");
+        }
     }
 }

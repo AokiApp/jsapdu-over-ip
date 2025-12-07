@@ -1,5 +1,8 @@
 package app.aoki.quarkuscrud.websocket;
 
+import app.aoki.quarkuscrud.service.CardhostService;
+import app.aoki.quarkuscrud.usecase.EstablishConnectionUseCase;
+import app.aoki.quarkuscrud.usecase.RouteRpcMessageUseCase;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.websockets.next.OnOpen;
 import io.quarkus.websockets.next.OnTextMessage;
@@ -10,18 +13,23 @@ import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 /**
- * WebSocket endpoint for controller connections
- * Controllers connect here and specify target cardhost UUID
+ * WebSocket adapter for controller connections.
  * 
- * Note: Quarkus WebSockets Next creates one instance per connection,
- * so instance variables are connection-scoped.
+ * This is the adapter/interface layer - translates WebSocket protocol to domain operations.
+ * Thin layer that delegates to use cases.
  */
 @WebSocket(path = "/ws/controller")
 public class ControllerWebSocket {
     private static final Logger LOG = Logger.getLogger(ControllerWebSocket.class);
     
     @Inject
-    RoutingService routingService;
+    EstablishConnectionUseCase establishConnectionUseCase;
+    
+    @Inject
+    RouteRpcMessageUseCase routeRpcMessageUseCase;
+    
+    @Inject
+    CardhostService cardhostService;
     
     @Inject
     ObjectMapper objectMapper;
@@ -31,7 +39,7 @@ public class ControllerWebSocket {
     
     @OnOpen
     public void onOpen(WebSocketConnection connection) {
-        LOG.infof("Controller WebSocket connection opened: %s", connection.id());
+        LOG.infof("Controller connection opened: %s", connection.id());
     }
     
     @OnTextMessage
@@ -39,56 +47,72 @@ public class ControllerWebSocket {
         try {
             RpcMessage rpcMessage = objectMapper.readValue(message, RpcMessage.class);
             
-            // Handle connection request with target cardhost UUID
+            // Handle connection request
             if ("connect".equals(rpcMessage.getType())) {
-                // Extract target cardhost UUID
-                if (rpcMessage.getData() != null && rpcMessage.getData().has("cardhostUuid")) {
-                    targetCardhostUuid = rpcMessage.getData().get("cardhostUuid").asText();
-                    routingService.registerController(connection, targetCardhostUuid);
-                    
-                    // Check if cardhost is connected
-                    boolean connected = routingService.isCardhostConnected(targetCardhostUuid);
-                    
-                    // Send confirmation using ObjectMapper to prevent JSON injection
-                    RpcMessage connectedMsg = new RpcMessage();
-                    connectedMsg.setType("connected");
-                    var data = objectMapper.createObjectNode();
-                    data.put("cardhostUuid", targetCardhostUuid);
-                    data.put("available", connected);
-                    connectedMsg.setData(data);
-                    
-                    connection.sendTextAndAwait(objectMapper.writeValueAsString(connectedMsg));
-                    LOG.infof("Controller connected targeting cardhost: %s (available: %b)", 
-                        targetCardhostUuid, connected);
-                }
+                handleConnectionRequest(connection, rpcMessage);
                 return;
             }
             
             // Route RPC requests to cardhost
             if (targetCardhostUuid != null) {
-                routingService.routeToCardhost(connection, message);
+                routeRpcMessageUseCase.routeToCardhost(connection, message);
             } else {
-                LOG.warn("Received message from unregistered controller");
-                // Send error using ObjectMapper to prevent JSON injection
-                RpcMessage errorMsg = new RpcMessage();
-                errorMsg.setType("error");
-                var data = objectMapper.createObjectNode();
-                data.put("message", "Not connected to cardhost");
-                errorMsg.setData(data);
-                
-                connection.sendTextAndAwait(objectMapper.writeValueAsString(errorMsg));
+                sendError(connection, "Not connected to cardhost");
             }
             
         } catch (Exception e) {
-            LOG.errorf(e, "Error processing controller message: %s", message);
+            LOG.errorf(e, "Error processing controller message");
         }
     }
     
     @OnClose
     public void onClose(WebSocketConnection connection) {
         if (targetCardhostUuid != null) {
-            routingService.unregisterController(connection);
+            cardhostService.unregisterCardhost(targetCardhostUuid);
         }
-        LOG.infof("Controller WebSocket connection closed: %s", connection.id());
+        LOG.infof("Controller connection closed: %s", connection.id());
+    }
+    
+    private void handleConnectionRequest(WebSocketConnection connection, RpcMessage connectMessage) {
+        try {
+            if (connectMessage.getData() == null || !connectMessage.getData().has("cardhostUuid")) {
+                LOG.warn("Connection message missing cardhost UUID");
+                return;
+            }
+            
+            String cardhostUuid = connectMessage.getData().get("cardhostUuid").asText();
+            
+            // Execute use case
+            boolean available = establishConnectionUseCase.execute(connection, cardhostUuid);
+            targetCardhostUuid = cardhostUuid;
+            
+            // Send confirmation (WebSocket-specific response)
+            RpcMessage connectedMsg = new RpcMessage();
+            connectedMsg.setType("connected");
+            var data = objectMapper.createObjectNode();
+            data.put("cardhostUuid", cardhostUuid);
+            data.put("available", available);
+            connectedMsg.setData(data);
+            
+            connection.sendTextAndAwait(objectMapper.writeValueAsString(connectedMsg));
+            LOG.infof("Controller connected to cardhost: %s (available: %b)", cardhostUuid, available);
+            
+        } catch (Exception e) {
+            LOG.errorf(e, "Error handling connection request");
+        }
+    }
+    
+    private void sendError(WebSocketConnection connection, String errorMessage) {
+        try {
+            RpcMessage errorMsg = new RpcMessage();
+            errorMsg.setType("error");
+            var data = objectMapper.createObjectNode();
+            data.put("message", errorMessage);
+            errorMsg.setData(data);
+            
+            connection.sendTextAndAwait(objectMapper.writeValueAsString(errorMsg));
+        } catch (Exception e) {
+            LOG.errorf(e, "Failed to send error message");
+        }
     }
 }

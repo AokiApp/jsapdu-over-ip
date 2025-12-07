@@ -1,7 +1,7 @@
 package app.aoki.quarkuscrud.resource;
 
 import app.aoki.quarkuscrud.model.CardhostInfo;
-import app.aoki.quarkuscrud.websocket.RoutingService;
+import app.aoki.quarkuscrud.service.CardhostService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 public class CardhostResource {
     
     @Inject
-    RoutingService routingService;
+    CardhostService cardhostService;
     
     /**
      * List available cardhosts
@@ -43,7 +43,7 @@ public class CardhostResource {
             );
         }
         
-        List<CardhostInfo> allCardhosts = routingService.getAllCardhostInfo().values()
+        List<CardhostInfo> allCardhosts = cardhostService.getAllCardhostInfo().values()
             .stream()
             .collect(Collectors.toList());
         
@@ -71,7 +71,7 @@ public class CardhostResource {
     @Path("/{uuid}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getCardhost(@PathParam("uuid") String uuid) {
-        CardhostInfo info = routingService.getCardhostInfo(uuid);
+        CardhostInfo info = cardhostService.getCardhostInfo(uuid);
         
         if (info == null) {
             return Response.status(Response.Status.NOT_FOUND)
