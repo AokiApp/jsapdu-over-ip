@@ -21,6 +21,20 @@ import { setTimeout as sleep } from 'timers/promises';
 import WebSocket from 'ws';
 import { randomUUID } from 'crypto';
 
+// Test timeouts (in milliseconds)
+const TIMEOUTS = {
+  ROUTER_CHECK: 2000,
+  CARDHOST_STARTUP: 500,
+  CARDHOST_MAX_WAIT: 10000,
+  CLEANUP: 1000,
+  WS_CONNECTION: 5000,
+  RPC_RESPONSE: 10000,
+  DEVICE_FLOW: 15000,
+  APDU_FLOW: 20000,
+  ERROR_HANDLING: 10000,
+  CONNECTION_ERROR: 3000,
+} as const;
+
 describe('Complete System E2E (CLI → Router → Cardhost-mock)', () => {
   const ROUTER_PORT = 8082;
   const ROUTER_URL = `ws://localhost:${ROUTER_PORT}/ws`;
