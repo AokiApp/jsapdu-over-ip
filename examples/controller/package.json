@@ -1,0 +1,35 @@
+{
+  "name": "@aokiapp/jsapdu-over-ip-examples-controller",
+  "version": "0.1.0",
+  "description": "Browser-based controller for remote APDU operations",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "jsapdu",
+    "controller",
+    "apdu"
+  ],
+  "author": "AokiApp",
+  "license": "ANAL-Tight",
+  "dependencies": {
+    "@aokiapp/jsapdu-over-ip": "workspace:*",
+    "@aokiapp/jsapdu-over-ip-examples-shared": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@aokiapp/jsapdu-interface": "^0.0.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "rimraf": "^5.0.10",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.11"
+  }
+}

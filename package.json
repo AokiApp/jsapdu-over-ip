@@ -61,5 +61,10 @@
   },
   "peerDependencies": {
     "@aokiapp/jsapdu-interface": "^0.0.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "@aokiapp/jsapdu-interface": "link:/tmp/jsapdu/packages/interface"
+    }
   }
 }

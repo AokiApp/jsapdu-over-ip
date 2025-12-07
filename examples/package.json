@@ -1,0 +1,30 @@
+{
+  "name": "@aokiapp/jsapdu-over-ip-examples",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Examples demonstrating jsapdu-over-ip usage",
+  "type": "module",
+  "workspaces": [
+    "controller",
+    "cardhost",
+    "cardhost-monitor",
+    "shared"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.7.4",
+    "turbo": "^1.13.4",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

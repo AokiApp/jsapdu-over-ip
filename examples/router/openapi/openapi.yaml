@@ -1,0 +1,47 @@
+openapi: 3.0.3
+info:
+  title: jsapdu-over-ip Router API
+  description: |
+    Router service for connecting remote controllers with cardhosts.
+    Enables transparent APDU command routing over the internet.
+    
+    WebSocket endpoints:
+    - /ws/cardhost - For cardhost connections
+    - /ws/controller - For controller connections
+  version: 0.1.0
+  contact:
+    name: AokiApp
+    url: https://github.com/AokiApp/jsapdu-over-ip
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: cardhost
+    description: Cardhost registration and management
+  - name: controller
+    description: Controller session management
+  - name: health
+    description: Service health checks
+
+paths:
+  /api/cardhosts:
+    $ref: './paths/cardhosts.yaml#/paths/~1api~1cardhosts'
+  /api/cardhosts/{uuid}:
+    $ref: './paths/cardhosts.yaml#/paths/~1api~1cardhosts~1{uuid}'
+  /api/controller/sessions:
+    $ref: './paths/controller.yaml#/paths/~1api~1controller~1sessions'
+  /healthz:
+    $ref: './paths/health.yaml#/paths/~1healthz'
+
+components:
+  schemas:
+    CardhostInfo:
+      $ref: './components/schemas/cardhost.yaml#/CardhostInfo'
+    CreateSessionRequest:
+      $ref: './components/schemas/controller.yaml#/CreateSessionRequest'
+    ControllerSession:
+      $ref: './components/schemas/controller.yaml#/ControllerSession'
+    ErrorResponse:
+      $ref: './components/schemas/common.yaml#/ErrorResponse'

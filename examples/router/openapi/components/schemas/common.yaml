@@ -1,0 +1,17 @@
+ErrorResponse:
+  type: object
+  required:
+    - code
+    - message
+  properties:
+    code:
+      type: integer
+      description: Error code
+      example: 500
+    message:
+      type: string
+      description: Error message
+      example: "Internal server error"
+    details:
+      type: string
+      description: Additional error details
