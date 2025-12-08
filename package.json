@@ -29,8 +29,9 @@
     "changeset": "changeset",
     "version": "changeset version",
     "release": "turbo run build lint typecheck && changeset publish",
-    "test:ci": "SKIP_E2E_TESTS=true vitest run",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:unit": "vitest run --exclude examples/tests/e2e/**",
+    "test:ci": "vitest run"
   },
   "keywords": [
     "jsapdu",
