@@ -1,8 +1,8 @@
 package app.aoki.quarkuscrud.service;
 
 import app.aoki.quarkuscrud.entity.Cardhost;
-import app.aoki.quarkuscrud.mapper.CardhostMapper;
 import app.aoki.quarkuscrud.generated.model.CardhostInfo;
+import app.aoki.quarkuscrud.mapper.CardhostMapper;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -11,7 +11,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.UUID;
@@ -166,9 +165,7 @@ public class CardhostService {
             ? CardhostInfo.StatusEnum.CONNECTED
             : CardhostInfo.StatusEnum.DISCONNECTED);
     info.setConnectedAt(
-        entity.getFirstSeen() != null
-            ? entity.getFirstSeen().atOffset(ZoneOffset.UTC)
-            : null);
+        entity.getFirstSeen() != null ? entity.getFirstSeen().atOffset(ZoneOffset.UTC) : null);
     info.setLastHeartbeat(
         entity.getLastSeen() != null ? entity.getLastSeen().atOffset(ZoneOffset.UTC) : null);
     return info;

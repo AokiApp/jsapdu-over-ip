@@ -6,18 +6,16 @@ import app.aoki.quarkuscrud.generated.model.ListCardhosts200Response;
 import app.aoki.quarkuscrud.service.CardhostService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * REST API implementation for cardhost management
- * Implements OpenAPI-generated CardhostApi interface
+ * REST API implementation for cardhost management Implements OpenAPI-generated CardhostApi
+ * interface
  */
 @ApplicationScoped
-@Path("/api")
 public class CardhostApiImpl implements CardhostApi {
 
   @Inject CardhostService cardhostService;
