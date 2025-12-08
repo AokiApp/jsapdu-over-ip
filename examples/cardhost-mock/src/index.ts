@@ -54,7 +54,7 @@ async function main() {
   // List devices
   const devices = await platform.getDeviceInfo();
   console.log(`Found ${devices.length} device(s):`);
-  devices.forEach(dev => {
+  devices.forEach((dev: any) => {
     console.log(`  - ${dev.friendlyName || dev.id}`);
   });
   console.log();
