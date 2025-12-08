@@ -57,24 +57,29 @@ Tests are calling mock platform directly - NOT testing the full system flow thro
 - Built controller-cli successfully
 - Built examples workspace with turbo
 
-### 05:21 - Checkpoint 4/6 ✅
-- Fetched issue #2 ✅
-- Added DeviceProxy unit tests (21 tests)
-- **Total: 94 tests passing** (from 73, from 53, from 39)
-- Test files: 7 (3 unit test files + 4 E2E files)
-- Test growth: 39 → 53 → 73 → 94 (+55 tests this session!)
+### 05:23 - Checkpoint 4+ ✅
+- Added CardProxy unit tests (25 tests)
+- **Total: 119 tests passing!** (from 94, from 73, from 53, from 39)
+- Test files: 8 (4 unit + 4 E2E)
+- Growth: +80 tests in 19 minutes! (39 → 119)
 
-**Unit Test Files Created**:
-1. transport.test.ts (14 tests) - RPC protocol
-2. error-handling.test.ts (20 tests) - Error scenarios
-3. device-proxy.test.ts (21 tests) - Device proxy client
+**Unit Test Files**:
+1. transport.test.ts (14 tests)
+2. error-handling.test.ts (20 tests)
+3. device-proxy.test.ts (21 tests)
+4. card-proxy.test.ts (25 tests) - NEW!
 
-**Issue #2 Compliance**:
-- ✅ "しっかりとユニットも用意し" - Unit tests for all components
-- ✅ "正常系・準正常系・異常系" - Normal, error, edge cases
-- ✅ "結構な数のテストケース" - 94 tests (growing)
+**CardProxy Tests Cover**:
+- Card handle management
+- ATR (Answer To Reset) handling
+- APDU transmission (various formats)
+- Status word interpretation (90 00, 6A 82, etc.)
+- Session management
+- Error handling (card not found, transmission failed)
+- Edge cases (long APDU, extended length, all instruction bytes)
+- Concurrent operations
 
-**Continuing**: 43 minutes remaining, more tests needed
+**Progress**: 41 minutes remaining, continuing...
 
 ---
 
