@@ -34,7 +34,7 @@ jobs:
           echo "@aokiapp:registry=https://npm.pkg.github.com" >> ~/.npmrc
 
       - name: Install main library dependencies
-        run: npm ci
+        run: npm i
 
       - name: Build main library
         run: npm run build
@@ -42,7 +42,7 @@ jobs:
       - name: Install and build examples
         run: |
           cd examples
-          npm ci
+          npm i
           npm run build
 
       - name: Set up Java for router
