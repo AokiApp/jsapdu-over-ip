@@ -2,7 +2,7 @@
  * Platform initialization for cardhost
  * This is for production use - requires real PC/SC hardware
  * 
- * For testing with mock platform, see examples/test-utils
+ * For E2E testing, tests inject a temporary mock into this file
  */
 
 import type { SmartCardPlatform } from "@aokiapp/jsapdu-interface";
