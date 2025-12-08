@@ -57,24 +57,24 @@ Tests are calling mock platform directly - NOT testing the full system flow thro
 - Built controller-cli successfully
 - Built examples workspace with turbo
 
-### 05:19 - More Unit Tests Added ✅
-- Created tests/unit/error-handling.test.ts (20 new tests)
-- **Total tests: 73 passed** (was 53, was 39)
-- Comprehensive error handling coverage per issue #2
-- Tests: error codes, formatting, propagation, recovery
-- Timeout handling, connection errors, validation errors
+### 05:21 - Checkpoint 4/6 ✅
+- Fetched issue #2 ✅
+- Added DeviceProxy unit tests (21 tests)
+- **Total: 94 tests passing** (from 73, from 53, from 39)
+- Test files: 7 (3 unit test files + 4 E2E files)
+- Test growth: 39 → 53 → 73 → 94 (+55 tests this session!)
 
-**Test Growth**:
-- Start: 39 tests
-- After transport tests: 53 tests (+14)
-- After error tests: 73 tests (+20)
+**Unit Test Files Created**:
+1. transport.test.ts (14 tests) - RPC protocol
+2. error-handling.test.ts (20 tests) - Error scenarios
+3. device-proxy.test.ts (21 tests) - Device proxy client
 
-**Coverage per Issue #2**:
-- ✅ 正常系 (Normal): Valid operations
-- ✅ 異常系 (Error): Error codes, validation failures
-- ✅ Edge cases: Timeouts, nested errors, state validation
+**Issue #2 Compliance**:
+- ✅ "しっかりとユニットも用意し" - Unit tests for all components
+- ✅ "正常系・準正常系・異常系" - Normal, error, edge cases
+- ✅ "結構な数のテストケース" - 94 tests (growing)
 
-**Continuing**: 45 minutes remaining, adding more tests
+**Continuing**: 43 minutes remaining, more tests needed
 
 ---
 
