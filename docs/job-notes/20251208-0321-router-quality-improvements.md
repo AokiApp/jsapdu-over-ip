@@ -43,7 +43,26 @@ From AokiApp/jsapdu-over-ip#2:
 - Generated models: CardhostInfo, ControllerSession, CreateSessionRequest, ErrorResponse, etc.
 - Location: `build/generated-src/openapi/src/gen/java/app/aoki/quarkuscrud/generated/api/`
 
-### 03:28 - Phase 1 Complete: OpenAPI Integration
+### 03:32 - Phase 2 Complete: Resource Naming Convention
+
+**Naming Convention Applied** ✅
+
+Renamed Resource classes to follow quarkus-crud template pattern:
+
+1. `CardhostResource.java` → `CardhostApiImpl.java`
+2. `ControllerResource.java` → `ControllerApiImpl.java`
+3. Added `HealthApiImpl.java` - implements HealthApi interface
+
+**HealthApiImpl Features**:
+- Basic health check implementation
+- Database connectivity check via CardhostService
+- Returns proper HTTP status codes (200 for healthy, 503 for unhealthy)
+- Uses generated model classes with enum types
+- Note in javadoc about SmallRye Health at /q/health for production
+
+**Compilation Status**: ✅ SUCCESS with Java 21
+
+### 03:32 - Phase 2 Complete: Resource Naming Convention
 
 **Major Refactoring Completed** ✅
 
@@ -115,10 +134,11 @@ Refactored Resource classes to implement OpenAPI-generated interfaces:
 - [ ] Add HealthApi implementation if needed
 - [ ] Ensure proper dependency injection and error handling
 
-### Phase 2: Build System Improvements
-- [ ] Add Java 21 requirement documentation
-- [ ] Verify all Gradle tasks work with Java 21
-- [ ] Test build, compile, and generation tasks
+### Phase 2: Resource Naming Convention ✅ COMPLETE
+- [x] Rename to *ApiImpl pattern (CardhostApiImpl, ControllerApiImpl)
+- [x] Add HealthApiImpl implementation
+- [x] Verify naming aligns with template best practices
+- [x] Test compilation
 
 ### Phase 3: Code Quality Review
 - [ ] Review all Java files against template patterns
@@ -154,7 +174,8 @@ Refactored Resource classes to implement OpenAPI-generated interfaces:
 | 03:23 | OpenAPI generation testing | 2 min |
 | 03:25 | Job note creation, planning | 3 min |
 | 03:28 | Phase 1: OpenAPI integration | 3 min |
-| **Total** | | **9 min** |
+| 03:32 | Phase 2: Naming convention & HealthAPI | 4 min |
+| **Total** | | **13 min** |
 
 ---
 

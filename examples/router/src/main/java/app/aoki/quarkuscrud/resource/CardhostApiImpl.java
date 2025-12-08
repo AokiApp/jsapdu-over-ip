@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  */
 @ApplicationScoped
 @Path("/api")
-public class CardhostResource implements CardhostApi {
+public class CardhostApiImpl implements CardhostApi {
 
   @Inject CardhostService cardhostService;
 

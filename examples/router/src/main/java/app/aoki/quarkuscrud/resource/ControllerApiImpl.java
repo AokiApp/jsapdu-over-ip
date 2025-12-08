@@ -21,7 +21,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  */
 @ApplicationScoped
 @Path("/api")
-public class ControllerResource implements ControllerApi {
+public class ControllerApiImpl implements ControllerApi {
 
   @Inject SessionTokenManager sessionTokenManager;
 
