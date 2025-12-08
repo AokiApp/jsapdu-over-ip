@@ -104,7 +104,7 @@ export class RouterServerTransport implements ServerTransport {
   /**
    * Stop transport - disconnect from router
    */
-  stop(): void {
+  async stop(): Promise<void> {
     this.isRunning = false;
 
     if (this.reconnectTimeout) {
@@ -116,6 +116,25 @@ export class RouterServerTransport implements ServerTransport {
       this.ws.close();
       this.ws = null;
     }
+
+    // Wait for WebSocket to close
+    await new Promise<void>((resolve) => {
+      if (!this.ws || this.ws.readyState === 3) {
+        resolve();
+      } else {
+        const checkClosed = setInterval(() => {
+          if (!this.ws || this.ws.readyState === 3) {
+            clearInterval(checkClosed);
+            resolve();
+          }
+        }, 100);
+        // Timeout after 1 second
+        setTimeout(() => {
+          clearInterval(checkClosed);
+          resolve();
+        }, 1000);
+      }
+    });
   }
 
   /**
