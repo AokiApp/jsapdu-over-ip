@@ -25,13 +25,13 @@ describe('Cardhost-mock - Platform Initialization', () => {
     }
   });
 
-  test('getInstance returns singleton instance', () => {
+  test('getInstance returns mock platform instance', () => {
     const platform1 = MockSmartCardPlatform.getInstance();
     const platform2 = MockSmartCardPlatform.getInstance();
-    // Mock platform may not be a true singleton in test environment
-    // Just verify both instances exist
+    // Verify both calls return valid platform instances
     expect(platform1).toBeDefined();
     expect(platform2).toBeDefined();
+    expect(platform1.isInitialized).toBeDefined();
   });
 
   test('init() initializes platform with mock device', async () => {

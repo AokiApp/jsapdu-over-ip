@@ -245,6 +245,6 @@ describe('WebSocket Protocol - Error Messages', () => {
   });
 });
 
-// This file has 4 describe blocks with 16 tests
+// This file has 4 describe blocks with 14 tests
 // Tests WebSocket message protocol used by router for communication
 // Validates message formats, RPC wrapping, routing, and error handling

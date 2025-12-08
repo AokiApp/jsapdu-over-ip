@@ -63,7 +63,8 @@ describe('E2E: Full Three-Program System', () => {
         cwd: routerDir,
         env: {
           ...process.env,
-          JAVA_HOME: process.env.JAVA_HOME || '/usr/lib/jvm/temurin-21-jdk-amd64',
+          // Detect Java installation or use provided JAVA_HOME
+          JAVA_HOME: process.env.JAVA_HOME || process.env.JAVA_HOME_21 || '/usr/lib/jvm/temurin-21-jdk-amd64',
         },
         stdio: ['ignore', 'pipe', 'pipe'],
       }
