@@ -43,6 +43,53 @@ From AokiApp/jsapdu-over-ip#2:
 - Generated models: CardhostInfo, ControllerSession, CreateSessionRequest, ErrorResponse, etc.
 - Location: `build/generated-src/openapi/src/gen/java/app/aoki/quarkuscrud/generated/api/`
 
+### 03:28 - Phase 1 Complete: OpenAPI Integration
+
+**Major Refactoring Completed** ✅
+
+Refactored Resource classes to implement OpenAPI-generated interfaces:
+
+1. **CardhostResource**:
+   - Now implements `CardhostApi` interface
+   - Changed from `@Path("/api/cardhosts")` to `@Path("/api")` (interface defines paths)
+   - Uses generated `CardhostInfo` and `ListCardhosts200Response` models
+   - Updated to use `CardhostInfo.StatusEnum` instead of String
+   - Type-safe UUID parameters
+
+2. **ControllerResource**:
+   - Now implements `ControllerApi` interface
+   - Changed from `@Path("/api/controller")` to `@Path("/api")` (interface defines paths)
+   - Uses generated `ControllerSession` and `CreateSessionRequest` models
+   - Fixed UUID type handling (generate UUID, not String)
+   - Fixed OffsetDateTime type for expiresAt
+
+3. **CardhostService**:
+   - Updated to use generated `CardhostInfo` model
+   - Convert entity fields to generated model types:
+     - String UUID → `UUID` type
+     - String status → `CardhostInfo.StatusEnum`
+     - `Instant` → `OffsetDateTime` with UTC timezone
+
+4. **Other Files Updated**:
+   - `RegisterCardhostUseCase.java` - use generated model
+   - `CardhostWebSocket.java` - use generated model
+
+5. **Cleanup**:
+   - Deleted manual model classes (replaced by generated):
+     - `CardhostInfo.java`
+     - `ControllerSession.java`
+     - `CreateSessionRequest.java`
+
+**Compilation Status**: ✅ SUCCESS with Java 21
+
+### Benefits of This Refactoring
+
+1. **Type Safety**: All API contracts enforced by compiler
+2. **OpenAPI Contract**: Resources implement exact OpenAPI specification
+3. **Consistency**: Models generated from single source of truth (OpenAPI spec)
+4. **Template Alignment**: Follows quarkus-crud pattern (*ApiImpl implements *Api)
+5. **Maintainability**: OpenAPI spec changes auto-propagate to code
+
 ### Current Issues Identified
 
 1. **Resources not implementing generated APIs**
@@ -105,7 +152,9 @@ From AokiApp/jsapdu-over-ip#2:
 | 03:19 | Session start, issue review | 2 min |
 | 03:21 | Environment setup, Java 21 | 2 min |
 | 03:23 | OpenAPI generation testing | 2 min |
-| 03:25 | Job note creation, planning | - |
+| 03:25 | Job note creation, planning | 3 min |
+| 03:28 | Phase 1: OpenAPI integration | 3 min |
+| **Total** | | **9 min** |
 
 ---
 
