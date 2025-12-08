@@ -57,21 +57,24 @@ Tests are calling mock platform directly - NOT testing the full system flow thro
 - Built controller-cli successfully
 - Built examples workspace with turbo
 
-### 05:16 - Added Unit Tests ✅
-- Created tests/unit/transport.test.ts (14 new tests)
-- Tests now cover RPC protocol edge cases
-- Total tests: 53 passed (was 39)
-- Coverage: 正常系 (normal), 異常系 (error), edge cases
-- Added: malformed JSON, Unicode, large messages, invalid formats
+### 05:19 - More Unit Tests Added ✅
+- Created tests/unit/error-handling.test.ts (20 new tests)
+- **Total tests: 73 passed** (was 53, was 39)
+- Comprehensive error handling coverage per issue #2
+- Tests: error codes, formatting, propagation, recovery
+- Timeout handling, connection errors, validation errors
 
-**Test Breakdown**:
-- RPC request format validation (3 tests)
-- RPC response format validation (2 tests)
-- Edge cases: message parsing (4 tests)
-- Edge cases: request IDs (2 tests)
-- Error scenarios: invalid messages (3 tests)
+**Test Growth**:
+- Start: 39 tests
+- After transport tests: 53 tests (+14)
+- After error tests: 73 tests (+20)
 
-**Continuing**: More unit tests needed for proxies, adapters
+**Coverage per Issue #2**:
+- ✅ 正常系 (Normal): Valid operations
+- ✅ 異常系 (Error): Error codes, validation failures
+- ✅ Edge cases: Timeouts, nested errors, state validation
+
+**Continuing**: 45 minutes remaining, adding more tests
 
 ---
 
