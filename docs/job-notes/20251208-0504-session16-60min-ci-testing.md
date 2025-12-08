@@ -57,17 +57,21 @@ Tests are calling mock platform directly - NOT testing the full system flow thro
 - Built controller-cli successfully
 - Built examples workspace with turbo
 
-### 05:12 - Tests Now Passing! ✅
-- All 4 test files passing
-- 39 tests passed, 3 skipped, 3 todo
-- E2E tests working: "CLI Controller → Router → Cardhost-mock"
-- Duration: 10.35s
+### 05:16 - Added Unit Tests ✅
+- Created tests/unit/transport.test.ts (14 new tests)
+- Tests now cover RPC protocol edge cases
+- Total tests: 53 passed (was 39)
+- Coverage: 正常系 (normal), 異常系 (error), edge cases
+- Added: malformed JSON, Unicode, large messages, invalid formats
 
-**Test Results**:
-- ✅ examples/controller-cli/tests/apdu-parser.test.ts (17 tests)
-- ✅ tests/e2e/complete-system.test.ts (11 tests | 3 skipped)
-- ✅ tests/e2e/example.e2e.test.ts (1 test)
-- ✅ tests/e2e/system-integration.test.ts (16 tests | 3 skipped)
+**Test Breakdown**:
+- RPC request format validation (3 tests)
+- RPC response format validation (2 tests)
+- Edge cases: message parsing (4 tests)
+- Edge cases: request IDs (2 tests)
+- Error scenarios: invalid messages (3 tests)
+
+**Continuing**: More unit tests needed for proxies, adapters
 
 ---
 
