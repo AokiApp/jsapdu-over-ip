@@ -24,7 +24,7 @@ export interface RouterServerTransportConfig {
 
 interface RouterMessage {
   type: "auth-challenge" | "auth-success" | "auth-failed" | "registered" | "rpc-request" | "rpc-response" | "rpc-event";
-  data?: any;
+  data?: unknown;
 }
 
 /**
@@ -37,19 +37,20 @@ async function generatePublicKeyPEM(publicKey: webcrypto.CryptoKey): Promise<str
 
 /**
  * Inline crypto helper: sign challenge with private key
+ * Currently unused but kept for future authentication enhancements
  */
-async function signChallenge(privateKey: webcrypto.CryptoKey, challenge: string): Promise<string> {
-  const dataBuffer = new TextEncoder().encode(challenge);
-  const signature = await webcrypto.subtle.sign(
-    {
-      name: 'ECDSA',
-      hash: 'SHA-256',
-    },
-    privateKey,
-    dataBuffer
-  );
-  return Buffer.from(signature).toString('base64');
-}
+// async function signChallenge(privateKey: webcrypto.CryptoKey, challenge: string): Promise<string> {
+//   const dataBuffer = new TextEncoder().encode(challenge);
+//   const signature = await webcrypto.subtle.sign(
+//     {
+//       name: 'ECDSA',
+//       hash: 'SHA-256',
+//     },
+//     privateKey,
+//     dataBuffer
+//   );
+//   return Buffer.from(signature).toString('base64');
+// }
 
 /**
  * ServerTransport that connects cardhost to router
@@ -103,7 +104,7 @@ export class RouterServerTransport implements ServerTransport {
   /**
    * Stop transport - disconnect from router
    */
-  async stop(): Promise<void> {
+  stop(): void {
     this.isRunning = false;
 
     if (this.reconnectTimeout) {
@@ -135,33 +136,37 @@ export class RouterServerTransport implements ServerTransport {
         reject(new Error("Connection timeout"));
       }, 10000);
 
-      this.ws.on("open", async () => {
-        clearTimeout(timeout);
-        console.log("[RouterServerTransport] WebSocket connected");
-        
-        // Send authentication immediately (simplified - no challenge/response for now)
-        const publicKeyPEM = await generatePublicKeyPEM(this.config.publicKey);
-        const authMessage: RouterMessage = {
-          type: "auth-success",
-          data: {
-            uuid: this.config.uuid,
-            publicKey: publicKeyPEM,
-          },
-        };
-        
-        this.ws!.send(JSON.stringify(authMessage));
+      this.ws.on("open", () => {
+        void (async () => {
+          clearTimeout(timeout);
+          console.log("[RouterServerTransport] WebSocket connected");
+          
+          // Send authentication immediately (simplified - no challenge/response for now)
+          const publicKeyPEM = await generatePublicKeyPEM(this.config.publicKey);
+          const authMessage: RouterMessage = {
+            type: "auth-success",
+            data: {
+              uuid: this.config.uuid,
+              publicKey: publicKeyPEM,
+            },
+          };
+          
+          this.ws!.send(JSON.stringify(authMessage));
+        })();
       });
 
-      this.ws.on("message", async (data: WebSocket.Data) => {
-        try {
-          const message: RouterMessage = JSON.parse(data.toString());
-          await this.handleMessage(message, resolve);
-        } catch (error) {
-          console.error(
-            "[RouterServerTransport] Message handling error:",
-            error
-          );
-        }
+      this.ws.on("message", (data: WebSocket.Data) => {
+        void (async () => {
+          try {
+            const message = JSON.parse(data.toString()) as RouterMessage;
+            await this.handleMessage(message, resolve);
+          } catch (error) {
+            console.error(
+              "[RouterServerTransport] Message handling error:",
+              String(error)
+            );
+          }
+        })();
       });
 
       this.ws.on("close", () => {
@@ -203,7 +208,7 @@ export class RouterServerTransport implements ServerTransport {
 
       case "rpc-request": {
         // Router forwards RPC request from controller
-        const request: RpcRequest = message.data;
+        const request = message.data as RpcRequest;
 
         if (!this.requestHandler) {
           const errorResponse: RpcResponse = {
