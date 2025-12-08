@@ -158,7 +158,33 @@ CREATE TABLE controller_sessions (
 
 - Java 21+
 - Docker (for PostgreSQL via Dev Services)
-- Gradle 8.x
+- Gradle 9.x (wrapper included)
+
+### OpenAPI-First Development
+
+The router follows an OpenAPI-first approach where REST APIs are generated from the OpenAPI specification:
+
+1. **Define API in OpenAPI**: Edit files in `openapi/` directory
+   - `openapi/openapi.yaml` - Main spec (references other files)
+   - `openapi/paths/*.yaml` - Path definitions
+   - `openapi/components/schemas/*.yaml` - Schema definitions
+
+2. **Generate Code**: Run Gradle tasks to compile spec and generate interfaces
+   ```bash
+   ./gradlew compileOpenApi        # Bundles modular spec
+   ./gradlew generateOpenApiModels # Generates Java interfaces and models
+   ```
+   Generated code is in `build/generated-src/openapi/src/gen/java/`
+
+3. **Implement Interfaces**: Resource classes implement generated interfaces
+   - Example: `CardhostApiImpl implements CardhostApi`
+   - Type-safe contracts enforced by compiler
+   - Generated models used for request/response
+
+4. **Build**: Gradle automatically runs generation before compilation
+   ```bash
+   ./gradlew compileJava  # Auto-generates OpenAPI code first
+   ```
 
 ### Running in Dev Mode
 
