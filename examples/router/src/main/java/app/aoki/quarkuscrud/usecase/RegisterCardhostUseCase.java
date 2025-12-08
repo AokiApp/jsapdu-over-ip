@@ -1,6 +1,6 @@
 package app.aoki.quarkuscrud.usecase;
 
-import app.aoki.quarkuscrud.model.CardhostInfo;
+import app.aoki.quarkuscrud.generated.model.CardhostInfo;
 import app.aoki.quarkuscrud.service.CardhostService;
 import io.quarkus.websockets.next.WebSocketConnection;
 import jakarta.enterprise.context.ApplicationScoped;

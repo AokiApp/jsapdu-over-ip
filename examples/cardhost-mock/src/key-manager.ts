@@ -7,7 +7,7 @@
 
 import { webcrypto } from 'crypto';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { join, dirname } from 'path';
+import { dirname } from 'path';
 
 export interface KeyPair {
   publicKey: webcrypto.CryptoKey;
@@ -25,8 +25,8 @@ export async function getOrCreateKeyPair(keyPath: string): Promise<KeyPair> {
   // Try to load existing keys
   if (existsSync(publicKeyPath) && existsSync(privateKeyPath)) {
     try {
-      const publicJwk = JSON.parse(readFileSync(publicKeyPath, 'utf-8'));
-      const privateJwk = JSON.parse(readFileSync(privateKeyPath, 'utf-8'));
+      const publicJwk = JSON.parse(readFileSync(publicKeyPath, 'utf-8')) as JsonWebKey;
+      const privateJwk = JSON.parse(readFileSync(privateKeyPath, 'utf-8')) as JsonWebKey;
 
       const publicKey = await webcrypto.subtle.importKey(
         'jwk',

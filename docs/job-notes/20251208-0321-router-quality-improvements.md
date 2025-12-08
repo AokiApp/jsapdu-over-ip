@@ -1,0 +1,193 @@
+# Session 14 - Router Quality Improvements
+
+**Date**: December 8, 2025  
+**Start Time**: 03:19 UTC  
+**Status**: IN PROGRESS
+
+## Task Summary
+
+Improve router quality based on agent instructions:
+- Execute OpenAPI generator and ensure Resources implement generated interfaces
+- Apply template best practices from quarkus-crud
+- Perform comprehensive quality review and improvements
+
+## Issue Context
+
+From AokiApp/jsapdu-over-ip#2:
+- Router should use quarkus-crud template patterns
+- OpenAPI generator should be properly integrated
+- Resources must implement generated API interfaces
+- Quality improvements needed across all files
+
+## Work Log
+
+### 03:19 - Session Start
+- Fetched issue #2 for latest updates
+- Cloned quarkus-crud template to /tmp (as required)
+- Reviewed previous session notes (session13)
+- Key finding: MyBatis + PostgreSQL required (not Panache)
+
+### 03:21 - Environment Setup
+- Discovered Java 21 requirement (build.gradle specifies Java 21)
+- Current environment: Java 17
+- Found Java 21 available at: /usr/lib/jvm/temurin-21-jdk-amd64
+- Switched to Java 21 for Gradle builds
+
+### 03:23 - OpenAPI Generation Analysis
+- Successfully ran `./gradlew compileOpenApi` - OpenAPI spec compiled ✅
+- Successfully ran `./gradlew generateOpenApiModels` - API interfaces generated ✅
+- Generated interfaces:
+  - `CardhostApi.java` - GET /api/cardhosts, GET /api/cardhosts/{uuid}
+  - `ControllerApi.java` - POST /api/controller/sessions
+  - `HealthApi.java` - GET /healthz
+- Generated models: CardhostInfo, ControllerSession, CreateSessionRequest, ErrorResponse, etc.
+- Location: `build/generated-src/openapi/src/gen/java/app/aoki/quarkuscrud/generated/api/`
+
+### 03:32 - Phase 2 Complete: Resource Naming Convention
+
+**Naming Convention Applied** ✅
+
+Renamed Resource classes to follow quarkus-crud template pattern:
+
+1. `CardhostResource.java` → `CardhostApiImpl.java`
+2. `ControllerResource.java` → `ControllerApiImpl.java`
+3. Added `HealthApiImpl.java` - implements HealthApi interface
+
+**HealthApiImpl Features**:
+- Basic health check implementation
+- Database connectivity check via CardhostService
+- Returns proper HTTP status codes (200 for healthy, 503 for unhealthy)
+- Uses generated model classes with enum types
+- Note in javadoc about SmallRye Health at /q/health for production
+
+**Compilation Status**: ✅ SUCCESS with Java 21
+
+### 03:32 - Phase 2 Complete: Resource Naming Convention
+
+**Major Refactoring Completed** ✅
+
+Refactored Resource classes to implement OpenAPI-generated interfaces:
+
+1. **CardhostResource**:
+   - Now implements `CardhostApi` interface
+   - Changed from `@Path("/api/cardhosts")` to `@Path("/api")` (interface defines paths)
+   - Uses generated `CardhostInfo` and `ListCardhosts200Response` models
+   - Updated to use `CardhostInfo.StatusEnum` instead of String
+   - Type-safe UUID parameters
+
+2. **ControllerResource**:
+   - Now implements `ControllerApi` interface
+   - Changed from `@Path("/api/controller")` to `@Path("/api")` (interface defines paths)
+   - Uses generated `ControllerSession` and `CreateSessionRequest` models
+   - Fixed UUID type handling (generate UUID, not String)
+   - Fixed OffsetDateTime type for expiresAt
+
+3. **CardhostService**:
+   - Updated to use generated `CardhostInfo` model
+   - Convert entity fields to generated model types:
+     - String UUID → `UUID` type
+     - String status → `CardhostInfo.StatusEnum`
+     - `Instant` → `OffsetDateTime` with UTC timezone
+
+4. **Other Files Updated**:
+   - `RegisterCardhostUseCase.java` - use generated model
+   - `CardhostWebSocket.java` - use generated model
+
+5. **Cleanup**:
+   - Deleted manual model classes (replaced by generated):
+     - `CardhostInfo.java`
+     - `ControllerSession.java`
+     - `CreateSessionRequest.java`
+
+**Compilation Status**: ✅ SUCCESS with Java 21
+
+### Benefits of This Refactoring
+
+1. **Type Safety**: All API contracts enforced by compiler
+2. **OpenAPI Contract**: Resources implement exact OpenAPI specification
+3. **Consistency**: Models generated from single source of truth (OpenAPI spec)
+4. **Template Alignment**: Follows quarkus-crud pattern (*ApiImpl implements *Api)
+5. **Maintainability**: OpenAPI spec changes auto-propagate to code
+
+### Current Issues Identified
+
+1. **Resources not implementing generated APIs**
+   - `CardhostResource.java` - does not implement `CardhostApi`
+   - `ControllerResource.java` - does not implement `ControllerApi`
+   - Manual implementation without interface contract
+
+2. **OpenAPI modular structure exists but not fully integrated**
+   - OpenAPI spec is properly modularized (openapi/, paths/, components/)
+   - Build tasks configured but Resources don't use generated code
+
+3. **Template patterns not fully applied**
+   - quarkus-crud uses `*ApiImpl` naming convention
+   - Resources should be in `resource/` package and implement generated APIs
+   - Need to review all template patterns
+
+## Plan
+
+### Phase 1: OpenAPI Integration ✅ STARTED
+- [x] Verify OpenAPI generation works
+- [ ] Update CardhostResource to implement CardhostApi
+- [ ] Update ControllerResource to implement ControllerApi
+- [ ] Add HealthApi implementation if needed
+- [ ] Ensure proper dependency injection and error handling
+
+### Phase 2: Resource Naming Convention ✅ COMPLETE
+- [x] Rename to *ApiImpl pattern (CardhostApiImpl, ControllerApiImpl)
+- [x] Add HealthApiImpl implementation
+- [x] Verify naming aligns with template best practices
+- [x] Test compilation
+
+### Phase 3: Build Configuration Documentation ✅ COMPLETE
+- [x] Document Java 21 requirement in README
+- [x] Add OpenAPI generation workflow to documentation
+- [x] Update router.md with OpenAPI-first development guide
+- [x] Document build instructions and prerequisites
+
+### Phase 4: Code Quality Review
+- [ ] Review all Java files against template patterns
+- [ ] Check naming conventions
+- [ ] Review error handling patterns
+- [ ] Check resource organization
+
+## Next Steps
+
+1. Examine current Resource implementations
+2. Refactor to implement generated API interfaces
+3. Test compilation
+4. Continue systematic quality review
+
+## References
+
+- Template: /tmp/quarkus-crud
+- Issue: AokiApp/jsapdu-over-ip#2
+- Previous session: docs/job-notes/20251208-session13-final-summary.md
+- Router docs: docs/router.md
+
+## Time Tracking
+
+| Time (UTC) | Activity | Duration |
+|------------|----------|----------|
+| 03:19 | Session start, issue review | 2 min |
+| 03:21 | Environment setup, Java 21 | 2 min |
+| 03:23 | OpenAPI generation testing | 2 min |
+| 03:25 | Job note creation, planning | 3 min |
+| 03:28 | Phase 1: OpenAPI integration | 3 min |
+| 03:32 | Phase 2: Naming convention & HealthAPI | 4 min |
+| 03:33 | Phase 3: Documentation updates | 1 min |
+| **Total** | | **14 min** |
+
+---
+
+**Status**: Phases 1-3 Complete, Session Ending with Excellent Progress
+
+**Next Session Recommendations**:
+1. Perform systematic code quality review of remaining files
+2. Run linting (Spotless, Checkstyle)
+3. Ensure error handling patterns are consistent
+4. Review all Java files for quality issues
+5. Run full build and test suite
+
+**Session Duration**: ~15 minutes (03:19 - 03:34 UTC)

@@ -54,8 +54,8 @@ async function main() {
   // List devices
   const devices = await platform.getDeviceInfo();
   console.log(`Found ${devices.length} device(s):`);
-  devices.forEach(dev => {
-    console.log(`  - ${dev.friendlyName || dev.id}`);
+  devices.forEach((dev: { friendlyName?: string; id: string }) => {
+    console.log(`  - ${dev.friendlyName ?? dev.id}`);
   });
   console.log();
 
@@ -109,8 +109,8 @@ async function main() {
     process.exit(0);
   };
 
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", () => { void shutdown(); });
+  process.on("SIGTERM", () => { void shutdown(); });
 }
 
 main().catch(error => {

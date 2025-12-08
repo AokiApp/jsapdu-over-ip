@@ -14,7 +14,7 @@ async function main() {
   console.log("=== Cardhost Starting ===");
 
   // Load configuration
-  let config: CardhostConfig = await loadConfig();
+  const config: CardhostConfig = await loadConfig();
   console.log(`Cardhost UUID: ${config.uuid}`);
   console.log(`Router URL: ${config.routerUrl}`);
 
@@ -83,8 +83,8 @@ async function main() {
     }
   };
 
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", () => { void shutdown(); });
+  process.on("SIGTERM", () => { void shutdown(); });
 }
 
 main().catch((error) => {

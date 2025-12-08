@@ -1,7 +1,7 @@
 package app.aoki.quarkuscrud.websocket;
 
 import app.aoki.quarkuscrud.crypto.CryptoUtils;
-import app.aoki.quarkuscrud.model.CardhostInfo;
+import app.aoki.quarkuscrud.generated.model.CardhostInfo;
 import app.aoki.quarkuscrud.service.CardhostService;
 import app.aoki.quarkuscrud.usecase.RegisterCardhostUseCase;
 import app.aoki.quarkuscrud.usecase.RouteRpcMessageUseCase;

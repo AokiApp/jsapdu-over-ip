@@ -2,7 +2,7 @@ package app.aoki.quarkuscrud.service;
 
 import app.aoki.quarkuscrud.entity.Cardhost;
 import app.aoki.quarkuscrud.mapper.CardhostMapper;
-import app.aoki.quarkuscrud.model.CardhostInfo;
+import app.aoki.quarkuscrud.generated.model.CardhostInfo;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -11,7 +11,10 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.jboss.logging.Logger;
@@ -155,12 +158,19 @@ public class CardhostService {
   /** Convert Cardhost entity to CardhostInfo model */
   private CardhostInfo toCardhostInfo(Cardhost entity) {
     CardhostInfo info = new CardhostInfo();
-    info.setUuid(entity.getUuid());
+    info.setUuid(UUID.fromString(entity.getUuid()));
     info.setPublicKey(entity.getPublicKey());
     info.setName(entity.getName());
-    info.setStatus(entity.getStatus());
-    info.setConnectedAt(entity.getFirstSeen());
-    info.setLastHeartbeat(entity.getLastSeen());
+    info.setStatus(
+        "connected".equals(entity.getStatus())
+            ? CardhostInfo.StatusEnum.CONNECTED
+            : CardhostInfo.StatusEnum.DISCONNECTED);
+    info.setConnectedAt(
+        entity.getFirstSeen() != null
+            ? entity.getFirstSeen().atOffset(ZoneOffset.UTC)
+            : null);
+    info.setLastHeartbeat(
+        entity.getLastSeen() != null ? entity.getLastSeen().atOffset(ZoneOffset.UTC) : null);
     return info;
   }
 }

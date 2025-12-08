@@ -61,8 +61,10 @@ class Monitor {
   public async start(uuid: string): Promise<void> {
     this.monitorData.uuid = uuid;
 
-    this.server = http.createServer(async (req, res) => {
-      await this.handleRequest(req, res);
+    this.server = http.createServer((req, res) => {
+      void (async () => {
+        await this.handleRequest(req, res);
+      })();
     });
 
     return new Promise((resolve, reject) => {
@@ -121,19 +123,19 @@ class Monitor {
       const html = await fs.readFile(htmlPath, 'utf-8');
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(html);
-    } catch (error) {
+    } catch {
       // If file doesn't exist, serve inline HTML
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(this.getDefaultHTML());
     }
   }
 
-  private async serveCSS(res: http.ServerResponse): Promise<void> {
+  private serveCSS(res: http.ServerResponse): void {
     res.writeHead(200, { 'Content-Type': 'text/css' });
     res.end(this.getDefaultCSS());
   }
 
-  private async serveStatus(res: http.ServerResponse): Promise<void> {
+  private serveStatus(res: http.ServerResponse): void {
     this.monitorData.uptime = Math.floor((Date.now() - this.startTime) / 1000);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(this.monitorData));
