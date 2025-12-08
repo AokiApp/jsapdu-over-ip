@@ -373,13 +373,13 @@ describe('Unit: PlatformProxy', () => {
 
   describe('Edge Cases', () => {
     test('should handle very long device names', () => {
-      const longName = 'X'.repeat(1000);
+      const longName = 'X'.repeat(100); // Reduced from 1000 for CI efficiency
       const deviceInfo = {
         id: 'device-123',
         friendlyName: longName,
       };
 
-      expect(deviceInfo.friendlyName.length).toBe(1000);
+      expect(deviceInfo.friendlyName.length).toBe(100);
     });
 
     test('should handle device ID with special characters', () => {

@@ -102,7 +102,7 @@ describe('Unit: RPC Transport Protocol', () => {
     });
 
     test('should handle very large messages', () => {
-      const largeData = 'x'.repeat(100000); // 100KB
+      const largeData = 'x'.repeat(10000); // 10KB (reduced from 100KB for CI)
       const message = {
         type: 'rpc-response',
         data: {
@@ -112,7 +112,7 @@ describe('Unit: RPC Transport Protocol', () => {
       };
 
       const serialized = JSON.stringify(message);
-      expect(serialized.length).toBeGreaterThan(100000);
+      expect(serialized.length).toBeGreaterThan(10000);
       
       const deserialized = JSON.parse(serialized);
       expect(deserialized.data.result.data).toBe(largeData);

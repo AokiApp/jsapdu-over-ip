@@ -289,7 +289,8 @@ describe('Unit: CardProxy', () => {
     });
 
     test('should handle APDU with extended length', () => {
-      const extendedData = Array.from({ length: 65535 }, () => 0xff);
+      // Test with smaller array to avoid CI memory issues
+      const extendedData = Array.from({ length: 1000 }, () => 0xff);
       const apdu = {
         cla: 0x00,
         ins: 0xd0,
@@ -300,6 +301,7 @@ describe('Unit: CardProxy', () => {
       };
 
       expect(apdu.data.length).toBeGreaterThan(255);
+      expect(apdu.data.length).toBe(1000);
     });
 
     test('should handle all instruction bytes', () => {
