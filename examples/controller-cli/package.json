@@ -20,15 +20,16 @@
   "author": "AokiApp",
   "license": "ANAL-Tight",
   "dependencies": {
+    "@aokiapp/jsapdu-interface": "file:/tmp/jsapdu-interface.tgz",
     "@aokiapp/jsapdu-over-ip": "file:../..",
     "@aokiapp/jsapdu-over-ip-examples-shared": "file:../shared",
-    "@aokiapp/jsapdu-interface": "file:/tmp/jsapdu-interface.tgz",
     "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "@types/ws": "^8.5.13",
     "rimraf": "^5.0.10",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
   }
 }

@@ -89,8 +89,6 @@ jobs:
 
       - name: Build with Gradle
         run: ./gradlew build -x test
-        # TODO: Enable tests once implemented
-        # run: ./gradlew build
 
       - name: Archive build artifacts
         uses: actions/upload-artifact@v4
@@ -98,11 +96,62 @@ jobs:
           name: router-build
           path: examples/router/build/libs/
 
-  # TODO: Add integration tests
-  # integration-test:
-  #   name: Integration Tests
-  #   runs-on: ubuntu-latest
-  #   needs: [build-typescript, build-router]
-  #   steps:
-  #     - name: Run E2E tests
-  #       run: npm run test:e2e
+  test-integration:
+    name: Integration & E2E Tests
+    runs-on: ubuntu-latest
+    needs: [build-typescript, build-router]
+    permissions:
+      contents: read
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: jsapdu_router_test
+          POSTGRES_USER: router
+          POSTGRES_PASSWORD: router
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install main library dependencies
+        run: npm ci
+        working-directory: .
+
+      - name: Build main library
+        run: npm run build
+        working-directory: .
+
+      - name: Install examples dependencies
+        run: npm ci
+        working-directory: examples
+
+      - name: Build examples
+        run: npm run build
+        working-directory: examples
+
+      - name: Run E2E tests
+        run: npm run test:ci
+        working-directory: .
+        env:
+          POSTGRES_URL: postgresql://router:router@localhost:5432/jsapdu_router_test
