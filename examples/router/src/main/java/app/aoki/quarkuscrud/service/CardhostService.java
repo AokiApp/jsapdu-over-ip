@@ -1,5 +1,7 @@
 package app.aoki.quarkuscrud.service;
 
+import app.aoki.quarkuscrud.entity.Cardhost;
+import app.aoki.quarkuscrud.mapper.CardhostMapper;
 import app.aoki.quarkuscrud.model.CardhostInfo;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
@@ -7,27 +9,28 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.websockets.next.WebSocketConnection;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.jboss.logging.Logger;
 
 /**
  * Service for managing cardhost connections and metadata.
  *
- * <p>Handles cardhost registration, tracking, and lifecycle management. Separates business logic
- * from WebSocket transport layer.
+ * <p>Uses MyBatis for database persistence and in-memory map for active WebSocket connections.
+ * Implements persistent storage per documentation requirements.
  */
 @ApplicationScoped
 public class CardhostService {
   private static final Logger LOG = Logger.getLogger(CardhostService.class);
 
   @Inject MeterRegistry meterRegistry;
+  @Inject CardhostMapper cardhostMapper;
 
-  // Cardhost connections: UUID -> Connection
+  // Active WebSocket connections: UUID -> Connection (in-memory only)
   private final Map<String, WebSocketConnection> connections = new ConcurrentHashMap<>();
-
-  // Cardhost metadata: UUID -> CardhostInfo
-  private final Map<String, CardhostInfo> cardhostInfo = new ConcurrentHashMap<>();
 
   public CardhostService() {
     // Default constructor for CDI
@@ -40,7 +43,7 @@ public class CardhostService {
         .description("Number of currently connected cardhosts")
         .register(meterRegistry);
 
-    Gauge.builder("router.cardhosts.total", cardhostInfo, Map::size)
+    Gauge.builder("router.cardhosts.total", () -> cardhostMapper.findAll().size())
         .description("Total number of known cardhosts")
         .register(meterRegistry);
   }
@@ -53,22 +56,31 @@ public class CardhostService {
    * @param publicKey Public key for authentication
    * @return The registered CardhostInfo
    */
+  @Transactional
   public CardhostInfo registerCardhost(
       String uuid, WebSocketConnection connection, String publicKey) {
     connections.put(uuid, connection);
 
-    // Create or update cardhost info
-    CardhostInfo info = cardhostInfo.computeIfAbsent(uuid, k -> new CardhostInfo(uuid, publicKey));
-    info.setStatus("connected");
-    info.updateHeartbeat();
+    // Find or create cardhost entity in database
+    Cardhost entity = cardhostMapper.findByUuid(uuid).orElse(null);
+    if (entity == null) {
+      entity = new Cardhost(uuid, publicKey);
+      cardhostMapper.insert(entity);
+    } else {
+      entity.setStatus("connected");
+      entity.setLastSeen(Instant.now());
+      entity.setConnectionCount(entity.getConnectionCount() + 1);
+      entity.setUpdatedAt(Instant.now());
+      cardhostMapper.update(entity);
+    }
 
     Counter.builder("router.cardhosts.registered")
         .description("Total number of cardhost registrations")
         .register(meterRegistry)
         .increment();
 
-    LOG.infof("Cardhost registered: %s", uuid);
-    return info;
+    LOG.infof("Cardhost registered: %s (total connections: %d)", uuid, entity.getConnectionCount());
+    return toCardhostInfo(entity);
   }
 
   /**
@@ -76,14 +88,20 @@ public class CardhostService {
    *
    * @param uuid Cardhost UUID
    */
+  @Transactional
   public void unregisterCardhost(String uuid) {
     connections.remove(uuid);
 
-    // Update status but keep info for history
-    CardhostInfo info = cardhostInfo.get(uuid);
-    if (info != null) {
-      info.setStatus("disconnected");
-    }
+    // Update database status
+    cardhostMapper
+        .findByUuid(uuid)
+        .ifPresent(
+            entity -> {
+              entity.setStatus("disconnected");
+              entity.setLastSeen(Instant.now());
+              entity.setUpdatedAt(Instant.now());
+              cardhostMapper.update(entity);
+            });
 
     Counter.builder("router.cardhosts.disconnected")
         .description("Total number of cardhost disconnections")
@@ -100,16 +118,17 @@ public class CardhostService {
    * @return CardhostInfo or null if not found
    */
   public CardhostInfo getCardhostInfo(String uuid) {
-    return cardhostInfo.get(uuid);
+    return cardhostMapper.findByUuid(uuid).map(this::toCardhostInfo).orElse(null);
   }
 
   /**
-   * Get all cardhost information (connected and recently disconnected).
+   * Get all cardhost information (from database).
    *
    * @return Map of UUID to CardhostInfo
    */
   public Map<String, CardhostInfo> getAllCardhostInfo() {
-    return Map.copyOf(cardhostInfo);
+    return cardhostMapper.findAll().stream()
+        .collect(Collectors.toMap(Cardhost::getUuid, this::toCardhostInfo));
   }
 
   /**
@@ -131,5 +150,17 @@ public class CardhostService {
   public boolean isConnected(String uuid) {
     WebSocketConnection connection = connections.get(uuid);
     return connection != null && connection.isOpen();
+  }
+
+  /** Convert Cardhost entity to CardhostInfo model */
+  private CardhostInfo toCardhostInfo(Cardhost entity) {
+    CardhostInfo info = new CardhostInfo();
+    info.setUuid(entity.getUuid());
+    info.setPublicKey(entity.getPublicKey());
+    info.setName(entity.getName());
+    info.setStatus(entity.getStatus());
+    info.setConnectedAt(entity.getFirstSeen());
+    info.setLastHeartbeat(entity.getLastSeen());
+    return info;
   }
 }
