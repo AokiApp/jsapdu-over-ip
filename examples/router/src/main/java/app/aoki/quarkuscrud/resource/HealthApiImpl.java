@@ -6,20 +6,17 @@ import app.aoki.quarkuscrud.generated.model.HealthCheck200ResponseChecksInner;
 import app.aoki.quarkuscrud.service.CardhostService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * REST API implementation for health checks
- * Implements OpenAPI-generated HealthApi interface
- * 
- * This is a basic health check. For production, consider using
- * SmallRye Health at /q/health which provides more comprehensive checks.
+ * REST API implementation for health checks Implements OpenAPI-generated HealthApi interface
+ *
+ * <p>This is a basic health check. For production, consider using SmallRye Health at /q/health
+ * which provides more comprehensive checks.
  */
 @ApplicationScoped
-@Path("/api")
 public class HealthApiImpl implements HealthApi {
 
   @Inject CardhostService cardhostService;
@@ -30,25 +27,27 @@ public class HealthApiImpl implements HealthApi {
 
     // Check database connectivity by querying cardhost service
     boolean dbHealthy = checkDatabaseHealth();
-    
+
     HealthCheck200ResponseChecksInner dbCheck = new HealthCheck200ResponseChecksInner();
     dbCheck.setName("database");
-    dbCheck.setStatus(dbHealthy 
-        ? HealthCheck200ResponseChecksInner.StatusEnum.UP 
-        : HealthCheck200ResponseChecksInner.StatusEnum.DOWN);
+    dbCheck.setStatus(
+        dbHealthy
+            ? HealthCheck200ResponseChecksInner.StatusEnum.UP
+            : HealthCheck200ResponseChecksInner.StatusEnum.DOWN);
     checks.add(dbCheck);
 
     // Overall status
-    boolean allHealthy = checks.stream()
-        .allMatch(check -> check.getStatus() == HealthCheck200ResponseChecksInner.StatusEnum.UP);
+    boolean allHealthy =
+        checks.stream()
+            .allMatch(
+                check -> check.getStatus() == HealthCheck200ResponseChecksInner.StatusEnum.UP);
 
     HealthCheck200Response response = new HealthCheck200Response();
-    response.setStatus(allHealthy 
-        ? HealthCheck200Response.StatusEnum.UP 
-        : HealthCheck200Response.StatusEnum.DOWN);
+    response.setStatus(
+        allHealthy ? HealthCheck200Response.StatusEnum.UP : HealthCheck200Response.StatusEnum.DOWN);
     response.setChecks(checks);
 
-    return allHealthy 
+    return allHealthy
         ? Response.ok(response).build()
         : Response.status(Response.Status.SERVICE_UNAVAILABLE).entity(response).build();
   }

@@ -16,8 +16,8 @@ import java.util.UUID;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
- * REST API implementation for controller session management
- * Implements OpenAPI-generated ControllerApi interface
+ * REST API implementation for controller session management Implements OpenAPI-generated
+ * ControllerApi interface
  */
 @ApplicationScoped
 @Path("/api")

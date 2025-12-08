@@ -39,8 +39,8 @@ jobs:
         run: npm run format -- --check
         if: always()
 
-      - name: Run tests (skip E2E)
-        run: npm run test:ci
+      - name: Run tests (unit tests only, no Java setup)
+        run: npm run test:unit
         if: always()
 
       - name: Pack all packages
