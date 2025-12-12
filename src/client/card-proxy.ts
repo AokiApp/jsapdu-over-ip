@@ -81,7 +81,7 @@ export class RemoteSmartCard extends SmartCard {
   async transmit(
     apdu: JsapduCommandApdu | Uint8Array,
   ): Promise<JsapduResponseApdu | Uint8Array> {
-    if (apdu instanceof JsapduCommandApdu) {
+    if (apdu instanceof Uint8Array === false) {
       const serialized: SerializedCommandApdu = {
         cla: apdu.cla,
         ins: apdu.ins,
