@@ -46,7 +46,7 @@
     "url": "https://github.com/AokiApp/jsapdu-over-ip.git"
   },
   "devDependencies": {
-    "@aokiapp/jsapdu-interface": "^0.0.2",
+    "@aokiapp/jsapdu-interface": "^0.0.3",
     "@changesets/cli": "^2.29.8",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
@@ -60,6 +60,6 @@
     "vitest": "^4.0.15"
   },
   "peerDependencies": {
-    "@aokiapp/jsapdu-interface": "^0.0.2"
+    "@aokiapp/jsapdu-interface": "^0.0.3"
   }
 }
