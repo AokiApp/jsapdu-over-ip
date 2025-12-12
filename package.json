@@ -1,6 +1,6 @@
 {
   "name": "@aokiapp/jsapdu-over-ip",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "jsapdu インターフェースをHTTP経由でミラーリング",
   "type": "module",
   "main": "dist/index.js",
